@@ -46,9 +46,12 @@ node_finalize ( node_t *discard )
 {
     if (discard != NULL && discard->children != NULL) {
       free( discard->children );
-      free( discard->data );
+      if (discard->data != NULL) {
+        free( discard->data );
+      }
+      free( discard );
     }
-    free( discard );
+
 }
 
 
