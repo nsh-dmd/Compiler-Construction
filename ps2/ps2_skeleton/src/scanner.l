@@ -8,20 +8,20 @@
 /*regular definitions*/
 delim           [ \t\n\r\v]
 ws              {delim}+
-comment         \/\/([^\n])*\n
+comment         \/\/[^\n]*\n
 digit           [0-9]
 number          {digit}+
-string         \"[^"\n]*["\n]
+string          \"([^"\n])*\"
 letter          [A-Za-z_]
 identifier      {letter}({letter|digit})*
 
 %%
 FUNC                    { return FUNC; }
-ws                      { /* no action */ }
+ws                      { }
 comment                 { /* no action */ }
 number                  { return NUMBER; }
 identifier              { return IDENTIFIER; }
-string                  { return STRING; }
+string                  { ECHO;return STRING; }
 IF                      { return IF; }
 THEN                    { return THEN; }
 ELSE                    { return ELSE; }
