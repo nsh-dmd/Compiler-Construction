@@ -43,11 +43,3 @@ FUNC                    { return FUNC; }
 .                       { return yytext[0]; }
 
 %%
-int yywrap(void) {
-    return 1;
-}
-int main(void) {
-    yylex();
-    printf("%d\n", yylineno);
-    return 0;
-}

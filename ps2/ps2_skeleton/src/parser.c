@@ -376,18 +376,18 @@ union yyalloc
 #endif /* !YYCOPY_NEEDED */
 
 /* YYFINAL -- State number of the termination state.  */
-#define YYFINAL  3
+#define YYFINAL  12
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   1
+#define YYLAST   142
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS  23
+#define YYNTOKENS  30
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  2
+#define YYNNTS  27
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  2
+#define YYNRULES  55
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  4
+#define YYNSTATES  93
 
 /* YYTRANSLATE[YYX] -- Symbol number corresponding to YYX as returned
    by yylex, with out-of-bounds checking.  */
@@ -405,9 +405,9 @@ static const yytype_uint8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     5,     3,     2,     4,     2,     6,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+      24,    25,     5,     3,    23,     4,     2,     6,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,    26,     2,
+      28,    27,    29,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
@@ -433,9 +433,14 @@ static const yytype_uint8 yytranslate[] =
 
 #if YYDEBUG
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
-static const yytype_uint8 yyrline[] =
+static const yytype_uint16 yyrline[] =
 {
-       0,    13,    13
+       0,    13,    13,    21,    26,    34,    39,    46,    51,    59,
+      64,    72,    77,    85,    90,    98,   103,   109,   114,   120,
+     125,   133,   143,   148,   153,   158,   163,   168,   173,   180,
+     186,   192,   199,   205,   211,   217,   223,   231,   238,   244,
+     250,   257,   263,   269,   275,   281,   286,   291,   296,   301,
+     309,   315,   320,   326,   332,   339
 };
 #endif
 
@@ -447,7 +452,14 @@ static const char *const yytname[] =
   "$end", "error", "$undefined", "'+'", "'-'", "'*'", "'/'", "UMINUS",
   "FUNC", "PRINT", "RETURN", "CONTINUE", "IF", "THEN", "ELSE", "WHILE",
   "DO", "OPENBLOCK", "CLOSEBLOCK", "VAR", "NUMBER", "IDENTIFIER", "STRING",
-  "$accept", "program", YY_NULLPTR
+  "','", "'('", "')'", "':'", "'='", "'<'", "'>'", "$accept", "program",
+  "global_list", "global", "statement_list", "print_list",
+  "expression_list", "variable_list", "argument_list", "parameter_list",
+  "declaration_list", "function", "statement", "block",
+  "assignment_statement", "return_statement", "print_statement",
+  "null_statement", "if_statement", "while_statement", "relation",
+  "expression", "declaration", "print_item", "identifier", "number",
+  "string", YY_NULLPTR
 };
 #endif
 
@@ -458,14 +470,14 @@ static const yytype_uint16 yytoknum[] =
 {
        0,   256,   257,    43,    45,    42,    47,   258,   259,   260,
      261,   262,   263,   264,   265,   266,   267,   268,   269,   270,
-     271,   272,   273
+     271,   272,   273,    44,    40,    41,    58,    61,    60,    62
 };
 # endif
 
-#define YYPACT_NINF -9
+#define YYPACT_NINF -24
 
 #define yypact_value_is_default(Yystate) \
-  (!!((Yystate) == (-9)))
+  (!!((Yystate) == (-24)))
 
 #define YYTABLE_NINF -1
 
@@ -476,7 +488,16 @@ static const yytype_uint16 yytoknum[] =
      STATE-NUM.  */
 static const yytype_int8 yypact[] =
 {
-      -8,    -9,     1,    -9
+       7,   -13,   -13,    25,     7,   -24,   -24,   -24,   -24,     8,
+      18,   -24,   -24,   -24,   -13,   -13,    18,     9,   -24,   121,
+      15,    43,   -24,    43,    43,    82,   -24,   -24,   -24,   -24,
+     -24,   -24,   -24,   -24,    12,    43,   -24,   -24,    43,    21,
+      17,   -24,    27,   -24,   -24,    17,    32,     1,    36,    95,
+      82,   -24,   -24,    28,    11,     6,    15,    43,    43,    43,
+      43,    43,   121,    43,    43,    43,   121,   -24,   -24,   108,
+     -24,    43,   -24,   -24,    11,    11,   -24,   -24,    33,    34,
+      17,    44,    17,    17,    17,   -24,   -24,    17,   -13,   -24,
+     121,   -24,   -24
 };
 
   /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -484,19 +505,32 @@ static const yytype_int8 yypact[] =
      means the default is an error.  */
 static const yytype_uint8 yydefact[] =
 {
-       0,     2,     0,     1
+       0,     0,     0,     0,     2,     3,     5,     6,    53,     0,
+      50,    13,     1,     4,    18,     0,    17,     0,    14,     0,
+       0,     0,    34,     0,     0,     0,    21,    28,    22,    23,
+      24,    27,    25,    26,     0,     0,    54,    55,     0,    33,
+      51,     9,    48,    47,    52,    32,     0,     0,     0,     0,
+       0,     7,    19,     0,    45,     0,     0,     0,     0,     0,
+       0,    16,     0,     0,     0,     0,     0,    30,     8,     0,
+      20,     0,    46,    10,    41,    42,    43,    44,    15,     0,
+      11,    35,    38,    39,    40,    37,    29,    31,     0,    49,
+       0,    12,    36
 };
 
   /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-      -9,    -9
+     -24,   -24,   -24,    56,    16,   -24,   -24,    48,   -24,   -24,
+     -24,   -24,   -16,   -24,   -24,   -24,   -24,   -24,   -24,   -24,
+      45,    19,   -23,    14,    -1,   -24,   -24
 };
 
   /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-      -1,     2
+      -1,     3,     4,     5,    49,    39,    78,    10,    79,    17,
+      50,     6,    51,    27,    28,    29,    30,    31,    32,    33,
+      46,    40,     7,    41,    42,    43,    44
 };
 
   /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -504,31 +538,78 @@ static const yytype_int8 yydefgoto[] =
      number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_uint8 yytable[] =
 {
-       1,     3
+       9,    11,    52,    26,    57,    58,    59,    60,     8,    57,
+      58,    59,    60,    11,    18,     1,    59,    60,    34,    35,
+      57,    58,    59,    60,    34,    12,     2,    70,    63,    64,
+      65,    72,    14,    68,    19,    36,     8,    37,    53,    38,
+      45,    15,    47,    47,    56,    62,    81,    35,    34,    34,
+      85,    61,    66,    68,    54,    71,    88,    55,    90,    89,
+      13,    34,    16,    36,     8,    34,    69,    38,    34,    48,
+      73,     0,     0,     0,    92,     0,    74,    75,    76,    77,
+      80,     0,    82,    83,    84,     0,     0,    91,     0,    34,
+      87,    20,    21,    22,    23,     0,     0,    24,     0,    25,
+       0,     2,     0,     8,    20,    21,    22,    23,     0,     0,
+      24,     0,    25,    67,     0,     0,     8,    20,    21,    22,
+      23,     0,     0,    24,     0,    25,    86,     0,     0,     8,
+      20,    21,    22,    23,     0,     0,    24,     0,    25,     0,
+       0,     0,     8
 };
 
-static const yytype_uint8 yycheck[] =
+static const yytype_int8 yycheck[] =
 {
-       8,     0
+       1,     2,    25,    19,     3,     4,     5,     6,    21,     3,
+       4,     5,     6,    14,    15,     8,     5,     6,    19,     4,
+       3,     4,     5,     6,    25,     0,    19,    50,    27,    28,
+      29,    25,    24,    49,    25,    20,    21,    22,    26,    24,
+      21,    23,    23,    24,    23,    13,    62,     4,    49,    50,
+      66,    24,    16,    69,    35,    27,    23,    38,    14,    25,
+       4,    62,    14,    20,    21,    66,    50,    24,    69,    24,
+      56,    -1,    -1,    -1,    90,    -1,    57,    58,    59,    60,
+      61,    -1,    63,    64,    65,    -1,    -1,    88,    -1,    90,
+      71,     9,    10,    11,    12,    -1,    -1,    15,    -1,    17,
+      -1,    19,    -1,    21,     9,    10,    11,    12,    -1,    -1,
+      15,    -1,    17,    18,    -1,    -1,    21,     9,    10,    11,
+      12,    -1,    -1,    15,    -1,    17,    18,    -1,    -1,    21,
+       9,    10,    11,    12,    -1,    -1,    15,    -1,    17,    -1,
+      -1,    -1,    21
 };
 
   /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
      symbol of state STATE-NUM.  */
 static const yytype_uint8 yystos[] =
 {
-       0,     8,    24,     0
+       0,     8,    19,    31,    32,    33,    41,    52,    21,    54,
+      37,    54,     0,    33,    24,    23,    37,    39,    54,    25,
+       9,    10,    11,    12,    15,    17,    42,    43,    44,    45,
+      46,    47,    48,    49,    54,     4,    20,    22,    24,    35,
+      51,    53,    54,    55,    56,    51,    50,    51,    50,    34,
+      40,    42,    52,    26,    51,    51,    23,     3,     4,     5,
+       6,    24,    13,    27,    28,    29,    16,    18,    42,    34,
+      52,    27,    25,    53,    51,    51,    51,    51,    36,    38,
+      51,    42,    51,    51,    51,    42,    18,    51,    23,    25,
+      14,    54,    42
 };
 
   /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
 static const yytype_uint8 yyr1[] =
 {
-       0,    23,    24
+       0,    30,    31,    32,    32,    33,    33,    34,    34,    35,
+      35,    36,    36,    37,    37,    38,    38,    39,    39,    40,
+      40,    41,    42,    42,    42,    42,    42,    42,    42,    43,
+      43,    44,    45,    46,    47,    48,    48,    49,    50,    50,
+      50,    51,    51,    51,    51,    51,    51,    51,    51,    51,
+      52,    53,    53,    54,    55,    56
 };
 
   /* YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.  */
 static const yytype_uint8 yyr2[] =
 {
-       0,     2,     1
+       0,     2,     1,     1,     2,     1,     1,     1,     2,     1,
+       3,     1,     3,     1,     3,     1,     0,     1,     0,     1,
+       2,     6,     1,     1,     1,     1,     1,     1,     1,     4,
+       3,     4,     2,     2,     1,     4,     6,     4,     3,     3,
+       3,     3,     3,     3,     3,     2,     3,     1,     1,     4,
+       2,     1,     1,     1,     1,     1
 };
 
 
@@ -1205,16 +1286,567 @@ yyreduce:
   switch (yyn)
     {
         case 2:
-#line 13 "src/parser.y" /* yacc.c:1646  */
+#line 14 "src/parser.y" /* yacc.c:1646  */
     {
-        root = (node_t *) malloc ( sizeof(node_t) );
-        node_init ( root, PROGRAM, NULL, 0 );
-      }
-#line 1214 "y.tab.c" /* yacc.c:1646  */
+                      root = (node_t *) malloc ( sizeof(node_t) );
+                      node_init ( root, PROGRAM, NULL, 1 );
+                      root->children[0] = (yyvsp[0]);
+                      }
+#line 1296 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 3:
+#line 21 "src/parser.y" /* yacc.c:1646  */
+    {
+                      (yyval) = (node_t *) malloc (sizeof(node_t));
+                      node_init((yyval), GLOBAL_LIST, NULL, 1);
+                      (yyval)->children[0] = (yyvsp[0]);
+                      }
+#line 1306 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 4:
+#line 26 "src/parser.y" /* yacc.c:1646  */
+    {
+                                  (yyval) = (node_t *) malloc (sizeof(node_t));
+                                  node_init((yyval), GLOBAL_LIST, NULL, 2);
+                                  (yyval)->children[0] = (yyvsp[-1]);
+                                  (yyval)->children[1] = (yyvsp[0]);
+                                  }
+#line 1317 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 5:
+#line 34 "src/parser.y" /* yacc.c:1646  */
+    {
+                      (yyval) = (node_t *) malloc (sizeof(node_t));
+                      node_init((yyval), GLOBAL, NULL, 1);
+                      (yyval)->children[0] = (yyvsp[0]);
+                      }
+#line 1327 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 6:
+#line 39 "src/parser.y" /* yacc.c:1646  */
+    {
+                      (yyval) = (node_t *) malloc (sizeof(node_t));
+                      node_init((yyval), GLOBAL, NULL, 1);
+                      (yyval)->children[0] = (yyvsp[0]);
+                      }
+#line 1337 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 7:
+#line 46 "src/parser.y" /* yacc.c:1646  */
+    {
+                            (yyval) = (node_t *) malloc (sizeof(node_t));
+                            node_init((yyval), STATEMENT_LIST, NULL, 1);
+                            (yyval)->children[0] = (yyvsp[0]);
+                            }
+#line 1347 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 8:
+#line 51 "src/parser.y" /* yacc.c:1646  */
+    {
+                                      (yyval) = (node_t *) malloc (sizeof(node_t));
+                                      node_init((yyval), STATEMENT_LIST, NULL, 2);
+                                      (yyval)->children[0] = (yyvsp[-1]);
+                                      (yyval)->children[1] = (yyvsp[0]);
+                                      }
+#line 1358 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 9:
+#line 59 "src/parser.y" /* yacc.c:1646  */
+    {
+                            (yyval) = (node_t *) malloc (sizeof(node_t));
+                            node_init((yyval), PRINT_LIST, NULL, 1);
+                            (yyval)->children[0] = (yyvsp[0]);
+                            }
+#line 1368 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 10:
+#line 64 "src/parser.y" /* yacc.c:1646  */
+    {
+                                        (yyval) = (node_t *) malloc (sizeof(node_t));
+                                        node_init((yyval), PRINT_LIST, NULL, 2);
+                                        (yyval)->children[0] = (yyvsp[-2]);
+                                        (yyval)->children[1] = (yyvsp[0]);
+                                        }
+#line 1379 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 11:
+#line 72 "src/parser.y" /* yacc.c:1646  */
+    {
+                            (yyval) = (node_t *) malloc (sizeof(node_t));
+                            node_init((yyval), EXPRESSION_LIST, NULL, 1);
+                            (yyval)->children[0] = (yyvsp[0]);
+                            }
+#line 1389 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 12:
+#line 77 "src/parser.y" /* yacc.c:1646  */
+    {
+                                      (yyval) = (node_t *) malloc (sizeof(node_t));
+                                      node_init((yyval), EXPRESSION_LIST, NULL, 2);
+                                      (yyval)->children[0] = (yyvsp[-2]);
+                                      (yyval)->children[1] = (yyvsp[-1]);
+                                      }
+#line 1400 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 13:
+#line 85 "src/parser.y" /* yacc.c:1646  */
+    {
+                            (yyval) = (node_t *) malloc (sizeof(node_t));
+                            node_init((yyval), VARIABLE_LIST, NULL, 1);
+                            (yyval)->children[0] = (yyvsp[0]);
+                            }
+#line 1410 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 14:
+#line 90 "src/parser.y" /* yacc.c:1646  */
+    {
+                                            (yyval) = (node_t *) malloc (sizeof(node_t));
+                                            node_init((yyval), VARIABLE_LIST, NULL, 2);
+                                            (yyval)->children[0] = (yyvsp[-2]);
+                                            (yyval)->children[1] = (yyvsp[0]);
+                                            }
+#line 1421 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 15:
+#line 98 "src/parser.y" /* yacc.c:1646  */
+    {
+                            (yyval) = (node_t *) malloc (sizeof(node_t));
+                            node_init((yyval), ARGUMENT_LIST, NULL, 1);
+                            (yyval)->children[0] = (yyvsp[0]);
+                            }
+#line 1431 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 16:
+#line 103 "src/parser.y" /* yacc.c:1646  */
+    {
+                            (yyval) = (node_t *) malloc (sizeof(node_t));
+                            node_init((yyval), ARGUMENT_LIST, NULL, 0);
+                            }
+#line 1440 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 17:
+#line 109 "src/parser.y" /* yacc.c:1646  */
+    {
+                                (yyval) = (node_t *) malloc (sizeof(node_t));
+                                node_init((yyval), PARAMETER_LIST, NULL, 1);
+                                (yyval)->children[0] = (yyvsp[0]);
+                                }
+#line 1450 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 18:
+#line 114 "src/parser.y" /* yacc.c:1646  */
+    {
+                                (yyval) = (node_t *) malloc (sizeof(node_t));
+                                node_init((yyval), ARGUMENT_LIST, NULL, 0);
+                                }
+#line 1459 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 19:
+#line 120 "src/parser.y" /* yacc.c:1646  */
+    {
+                                (yyval) = (node_t *) malloc (sizeof(node_t));
+                                node_init((yyval), DECLARATION_LIST, NULL, 1);
+                                (yyval)->children[0] = (yyvsp[0]);
+                                }
+#line 1469 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 20:
+#line 125 "src/parser.y" /* yacc.c:1646  */
+    {
+                                                (yyval) = (node_t *) malloc (sizeof(node_t));
+                                                node_init((yyval), DECLARATION_LIST, NULL, 2);
+                                                (yyval)->children[0] = (yyvsp[-1]);
+                                                (yyval)->children[1] = (yyvsp[0]);
+                                                }
+#line 1480 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 21:
+#line 134 "src/parser.y" /* yacc.c:1646  */
+    {
+                                                (yyval) = (node_t *) malloc (sizeof(node_t));
+                                                node_init((yyval), FUNCTION, NULL, 3);
+                                                (yyval)->children[0] = (yyvsp[-4]);
+                                                (yyval)->children[1] = (yyvsp[-2]);
+                                                (yyval)->children[2] = (yyvsp[0]);
+                                                }
+#line 1492 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 22:
+#line 143 "src/parser.y" /* yacc.c:1646  */
+    {
+                                    (yyval) = (node_t *) malloc (sizeof(node_t));
+                                    node_init((yyval), STATEMENT, NULL, 1);
+                                    (yyval)->children[0] = (yyvsp[0]);
+                                    }
+#line 1502 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 23:
+#line 148 "src/parser.y" /* yacc.c:1646  */
+    {
+                                    (yyval) = (node_t *) malloc (sizeof(node_t));
+                                    node_init((yyval), STATEMENT, NULL, 1);
+                                    (yyval)->children[0] = (yyvsp[0]);
+                                    }
+#line 1512 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 24:
+#line 153 "src/parser.y" /* yacc.c:1646  */
+    {
+                                    (yyval) = (node_t *) malloc (sizeof(node_t));
+                                    node_init((yyval), STATEMENT, NULL, 1);
+                                    (yyval)->children[0] = (yyvsp[0]);
+                                    }
+#line 1522 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 25:
+#line 158 "src/parser.y" /* yacc.c:1646  */
+    {
+                                    (yyval) = (node_t *) malloc (sizeof(node_t));
+                                    node_init((yyval), STATEMENT, NULL, 1);
+                                    (yyval)->children[0] = (yyvsp[0]);
+                                    }
+#line 1532 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 26:
+#line 163 "src/parser.y" /* yacc.c:1646  */
+    {
+                                    (yyval) = (node_t *) malloc (sizeof(node_t));
+                                    node_init((yyval), STATEMENT, NULL, 1);
+                                    (yyval)->children[0] = (yyvsp[0]);
+                                    }
+#line 1542 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 27:
+#line 168 "src/parser.y" /* yacc.c:1646  */
+    {
+                                    (yyval) = (node_t *) malloc (sizeof(node_t));
+                                    node_init((yyval), STATEMENT, NULL, 1);
+                                    (yyval)->children[0] = (yyvsp[0]);
+                                    }
+#line 1552 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 28:
+#line 173 "src/parser.y" /* yacc.c:1646  */
+    {
+                                    (yyval) = (node_t *) malloc (sizeof(node_t));
+                                    node_init((yyval), STATEMENT, NULL, 1);
+                                    (yyval)->children[0] = (yyvsp[0]);
+                                    }
+#line 1562 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 29:
+#line 180 "src/parser.y" /* yacc.c:1646  */
+    {
+                                    (yyval) = (node_t*) malloc (sizeof(node_t));
+                                    node_init((yyval), BLOCK, NULL, 2);
+                                    (yyval)->children[0] = (yyvsp[-2]);
+                                    (yyval)->children[1] = (yyvsp[-1]);
+                                    }
+#line 1573 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 30:
+#line 186 "src/parser.y" /* yacc.c:1646  */
+    {
+                                    (yyval) = (node_t*) malloc (sizeof(node_t));
+                                    node_init((yyval), BLOCK, NULL, 1);
+                                    (yyval)->children[0] = (yyvsp[-1]);
+                                    }
+#line 1583 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 31:
+#line 192 "src/parser.y" /* yacc.c:1646  */
+    {
+                                  (yyval) = (node_t *) malloc (sizeof(node_t));
+                                  node_init((yyval), ASSIGNMENT_STATEMENT, NULL, 2);
+                                  (yyval)->children[0] = (yyvsp[-3]);
+                                  (yyval)->children[1] = (yyvsp[0]);
+                                  }
+#line 1594 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 32:
+#line 199 "src/parser.y" /* yacc.c:1646  */
+    {
+                                        (yyval) = (node_t *) malloc (sizeof(node_t));
+                                        node_init((yyval), RETURN_STATEMENT, NULL, 1);
+                                        (yyval)->children[0] = (yyvsp[-1]);
+                                        }
+#line 1604 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 33:
+#line 205 "src/parser.y" /* yacc.c:1646  */
+    {
+                                        (yyval) = (node_t *) malloc (sizeof(node_t));
+                                        node_init((yyval), PRINT_STATEMENT, NULL, 1);
+                                        (yyval)->children[0] = (yyvsp[-1]);
+                                        }
+#line 1614 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 34:
+#line 211 "src/parser.y" /* yacc.c:1646  */
+    {
+                                        (yyval) = (node_t *) malloc (sizeof(node_t));
+                                        node_init((yyval), NULL_STATEMENT, NULL, 1);
+                                        (yyval)->children[0] = (yyvsp[0]);
+                                        }
+#line 1624 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 35:
+#line 217 "src/parser.y" /* yacc.c:1646  */
+    {
+                                        (yyval) = (node_t *) malloc (sizeof(node_t));
+                                        node_init((yyval), IF_STATEMENT, NULL, 2);
+                                        (yyval)->children[0] = (yyvsp[-2]);
+                                        (yyval)->children[1] = (yyvsp[0]);
+                                        }
+#line 1635 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 36:
+#line 223 "src/parser.y" /* yacc.c:1646  */
+    {
+                                        (yyval) = (node_t *) malloc (sizeof(node_t));
+                                        node_init((yyval), IF_STATEMENT, NULL, 3);
+                                        (yyval)->children[0] = (yyvsp[-4]);
+                                        (yyval)->children[1] = (yyvsp[-2]);
+                                        (yyval)->children[2] = (yyvsp[0]);
+                                        }
+#line 1647 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 37:
+#line 231 "src/parser.y" /* yacc.c:1646  */
+    {
+                                        (yyval) = (node_t *) malloc (sizeof(node_t));
+                                        node_init((yyval), WHILE_STATEMENT, NULL, 2);
+                                        (yyval)->children[0] = (yyvsp[-2]);
+                                        (yyval)->children[1] = (yyvsp[0]);
+                                        }
+#line 1658 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 38:
+#line 238 "src/parser.y" /* yacc.c:1646  */
+    {
+                                        (yyval) = (node_t *) malloc (sizeof(node_t));
+                                        node_init((yyval), RELATION, strdup("="), 2);
+                                        (yyval)->children[0] = (yyvsp[-2]);
+                                        (yyval)->children[1] = (yyvsp[0]);
+                                        }
+#line 1669 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 39:
+#line 244 "src/parser.y" /* yacc.c:1646  */
+    {
+                                        (yyval) = (node_t *) malloc (sizeof(node_t));
+                                        node_init((yyval), RELATION, strdup("="), 2);
+                                        (yyval)->children[0] = (yyvsp[-2]);
+                                        (yyval)->children[1] = (yyvsp[0]);
+                                        }
+#line 1680 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 40:
+#line 250 "src/parser.y" /* yacc.c:1646  */
+    {
+                                        (yyval) = (node_t *) malloc (sizeof(node_t));
+                                        node_init((yyval), RELATION, strdup("="), 2);
+                                        (yyval)->children[0] = (yyvsp[-2]);
+                                        (yyval)->children[1] = (yyvsp[0]);
+                                        }
+#line 1691 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 41:
+#line 257 "src/parser.y" /* yacc.c:1646  */
+    {
+                                        (yyval) = (node_t *) malloc (sizeof(node_t));
+                                        node_init((yyval), EXPRESSION, strdup("="), 2);
+                                        (yyval)->children[0] = (yyvsp[-2]);
+                                        (yyval)->children[1] = (yyvsp[0]);
+                                        }
+#line 1702 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 42:
+#line 263 "src/parser.y" /* yacc.c:1646  */
+    {
+                                        (yyval) = (node_t *) malloc (sizeof(node_t));
+                                        node_init((yyval), EXPRESSION, strdup("-"), 2);
+                                        (yyval)->children[0] = (yyvsp[-2]);
+                                        (yyval)->children[1] = (yyvsp[0]);
+                                        }
+#line 1713 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 43:
+#line 269 "src/parser.y" /* yacc.c:1646  */
+    {
+                                        (yyval) = (node_t *) malloc (sizeof(node_t));
+                                        node_init((yyval), EXPRESSION, strdup("*"), 2);
+                                        (yyval)->children[0] = (yyvsp[-2]);
+                                        (yyval)->children[1] = (yyvsp[0]);
+                                        }
+#line 1724 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 44:
+#line 275 "src/parser.y" /* yacc.c:1646  */
+    {
+                                        (yyval) = (node_t *) malloc (sizeof(node_t));
+                                        node_init((yyval), EXPRESSION, strdup("/"), 2);
+                                        (yyval)->children[0] = (yyvsp[-2]);
+                                        (yyval)->children[1] = (yyvsp[0]);
+                                        }
+#line 1735 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 45:
+#line 281 "src/parser.y" /* yacc.c:1646  */
+    {
+                                        (yyval) = (node_t *) malloc (sizeof(node_t));
+                                        node_init((yyval), EXPRESSION, strdup("-"), 1);
+                                        (yyval)->children[0] = (yyvsp[0]);
+                                        }
+#line 1745 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 46:
+#line 286 "src/parser.y" /* yacc.c:1646  */
+    {
+                                        (yyval) = (node_t *) malloc (sizeof(node_t));
+                                        (yyval) = (yyvsp[-1]);
+                                        }
+#line 1754 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 47:
+#line 291 "src/parser.y" /* yacc.c:1646  */
+    {
+                                        (yyval) = (node_t *) malloc (sizeof(node_t));
+                                        node_init((yyval), EXPRESSION, NULL, 1);
+                                        (yyval)->children[0] = (yyvsp[0]);
+                                        }
+#line 1764 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 48:
+#line 296 "src/parser.y" /* yacc.c:1646  */
+    {
+                                        (yyval) = (node_t *) malloc (sizeof(node_t));
+                                        node_init((yyval), EXPRESSION, NULL, 1);
+                                        (yyval)->children[0] = (yyvsp[0]);
+                                        }
+#line 1774 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 49:
+#line 301 "src/parser.y" /* yacc.c:1646  */
+    {
+                                        (yyval) = (node_t *) malloc (sizeof(node_t));
+                                        node_init((yyval), EXPRESSION, NULL, 2);
+                                        (yyval)->children[0] = (yyvsp[-3]);
+                                        (yyval)->children[1] = (yyvsp[-1]);
+                                        }
+#line 1785 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 50:
+#line 309 "src/parser.y" /* yacc.c:1646  */
+    {
+                                       (yyval) = (node_t *) malloc (sizeof(node_t));
+                                       node_init((yyval), DECLARATION, NULL, 1);
+                                       (yyval)->children[0] = (yyvsp[0]);
+                                       }
+#line 1795 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 51:
+#line 315 "src/parser.y" /* yacc.c:1646  */
+    {
+                                       (yyval) = (node_t *) malloc (sizeof(node_t));
+                                       node_init((yyval), PRINT_ITEM, NULL, 1);
+                                       (yyval)->children[0] = (yyvsp[0]);
+                                       }
+#line 1805 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 52:
+#line 320 "src/parser.y" /* yacc.c:1646  */
+    {
+                                       (yyval) = (node_t *) malloc (sizeof(node_t));
+                                       node_init((yyval), PRINT_ITEM, NULL, 1);
+                                       (yyval)->children[0] = (yyvsp[0]);
+                                       }
+#line 1815 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 53:
+#line 326 "src/parser.y" /* yacc.c:1646  */
+    {
+                                       (yyval) = (node_t *) malloc (sizeof(node_t));
+                                       node_init((yyval), IDENTIFIER, NULL, 1);
+                                       (yyval)->data = strdup(yytext);
+                                       }
+#line 1825 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 54:
+#line 332 "src/parser.y" /* yacc.c:1646  */
+    {
+                                       (yyval) = (node_t *) malloc (sizeof(node_t));
+                                       int64_t* data = malloc(sizeof(int64_t));
+                                       *data = strtol ( yytext, NULL, 10 );
+                                       node_init((yyval), NUMBER_DATA, data, 0);
+                                       }
+#line 1836 "y.tab.c" /* yacc.c:1646  */
+    break;
+
+  case 55:
+#line 339 "src/parser.y" /* yacc.c:1646  */
+    {
+                                       (yyval) = (node_t*) malloc(sizeof(node_t));
+                                       node_init((yyval), STRING_DATA, NULL, 0);
+                                       (yyval)->data = strdup(yytext);
+                                       }
+#line 1846 "y.tab.c" /* yacc.c:1646  */
     break;
 
 
-#line 1218 "y.tab.c" /* yacc.c:1646  */
+#line 1850 "y.tab.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -1442,7 +2074,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 18 "src/parser.y" /* yacc.c:1906  */
+#line 345 "src/parser.y" /* yacc.c:1906  */
 
 
 int
