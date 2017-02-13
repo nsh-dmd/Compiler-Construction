@@ -10,8 +10,7 @@
 
 %%
 
-program : global_list
-                      {
+program : global_list {
                       root = (node_t *) malloc ( sizeof(node_t) );
                       node_init ( root, PROGRAM, NULL, 1 );
                       root->children[0] = $1;
@@ -48,7 +47,7 @@ statement_list : statement  {
                             node_init($$, STATEMENT_LIST, NULL, 1);
                             $$->children[0] = $1;
                             }
-                | statement_list statement         {
+                | statement_list statement  {
                                       $$ = (node_t *) malloc (sizeof(node_t));
                                       node_init($$, STATEMENT_LIST, NULL, 2);
                                       $$->children[0] = $1;
@@ -69,20 +68,20 @@ print_list : print_item     {
                                         }
             ;
 
-expression_list : expression          {
-                            $$ = (node_t *) malloc (sizeof(node_t));
-                            node_init($$, EXPRESSION_LIST, NULL, 1);
-                            $$->children[0] = $1;
-                            }
+expression_list : expression  {
+                              $$ = (node_t *) malloc (sizeof(node_t));
+                              node_init($$, EXPRESSION_LIST, NULL, 1);
+                              $$->children[0] = $1;
+                              }
                 | expression_list ',' identifier {
                                       $$ = (node_t *) malloc (sizeof(node_t));
                                       node_init($$, EXPRESSION_LIST, NULL, 2);
                                       $$->children[0] = $1;
-                                      $$->children[1] = $2;
+                                      $$->children[1] = $3;
                                       }
                 ;
 
-variable_list : identifier {
+variable_list : identifier  {
                             $$ = (node_t *) malloc (sizeof(node_t));
                             node_init($$, VARIABLE_LIST, NULL, 1);
                             $$->children[0] = $1;
@@ -199,19 +198,18 @@ assignment_statement : identifier ':' '=' expression   {
 return_statement : RETURN expression   {
                                         $$ = (node_t *) malloc (sizeof(node_t));
                                         node_init($$, RETURN_STATEMENT, NULL, 1);
-                                        $$->children[0] = $1;
+                                        $$->children[0] = $2;
                                         };
 
 print_statement : PRINT print_list      {
                                         $$ = (node_t *) malloc (sizeof(node_t));
                                         node_init($$, PRINT_STATEMENT, NULL, 1);
-                                        $$->children[0] = $1;
+                                        $$->children[0] = $2;
                                         };
 
 null_statement : CONTINUE               {
                                         $$ = (node_t *) malloc (sizeof(node_t));
-                                        node_init($$, NULL_STATEMENT, NULL, 1);
-                                        $$->children[0] = $1;
+                                        node_init($$, NULL_STATEMENT, NULL, 0);
                                         };
 
 if_statement : IF relation THEN statement   {
@@ -243,20 +241,20 @@ relation : expression '=' expression   {
                                         }
           | expression '<' expression   {
                                         $$ = (node_t *) malloc (sizeof(node_t));
-                                        node_init($$, RELATION, strdup("="), 2);
+                                        node_init($$, RELATION, strdup("<"), 2);
                                         $$->children[0] = $1;
                                         $$->children[1] = $3;
                                         }
           | expression '>' expression   {
                                         $$ = (node_t *) malloc (sizeof(node_t));
-                                        node_init($$, RELATION, strdup("="), 2);
+                                        node_init($$, RELATION, strdup(">"), 2);
                                         $$->children[0] = $1;
                                         $$->children[1] = $3;
                                         }
                                         ;
 expression : expression '+' expression  {
                                         $$ = (node_t *) malloc (sizeof(node_t));
-                                        node_init($$, EXPRESSION, strdup("="), 2);
+                                        node_init($$, EXPRESSION, strdup("+"), 2);
                                         $$->children[0] = $1;
                                         $$->children[1] = $3;
                                         }
@@ -288,17 +286,17 @@ expression : expression '+' expression  {
                                         $$ = $2;
                                         };
 
-expression : number                     {
+          | number                     {
                                         $$ = (node_t *) malloc (sizeof(node_t));
                                         node_init($$, EXPRESSION, NULL, 1);
                                         $$->children[0] = $1;
                                         }
-           | identifier                 {
+          | identifier                 {
                                         $$ = (node_t *) malloc (sizeof(node_t));
                                         node_init($$, EXPRESSION, NULL, 1);
                                         $$->children[0] = $1;
                                         }
-            | identifier '(' argument_list ')'{
+          | identifier '(' argument_list ')'{
                                         $$ = (node_t *) malloc (sizeof(node_t));
                                         node_init($$, EXPRESSION, NULL, 2);
                                         $$->children[0] = $1;
@@ -325,7 +323,7 @@ print_item : expression                {
 
 identifier : IDENTIFIER                {
                                        $$ = (node_t *) malloc (sizeof(node_t));
-                                       node_init($$, IDENTIFIER, NULL, 1);
+                                       node_init($$, IDENTIFIER_DATA, NULL, 1);
                                        $$->data = strdup(yytext);
                                        };
 
