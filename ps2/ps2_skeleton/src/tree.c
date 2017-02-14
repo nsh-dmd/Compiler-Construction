@@ -44,9 +44,9 @@ node_init (node_t *nd, node_index_t type, void *data, uint64_t n_children, ...)
 void
 node_finalize ( node_t *discard )
 {
-    if (discard != NULL && discard->children != NULL) {
+    if ( discard && discard->children ) {
       free( discard->children );
-      if (discard->data != NULL) {
+      if ( discard->data ) {
         free( discard->data );
       }
       free( discard );
@@ -60,7 +60,7 @@ void
 destroy_subtree ( node_t *discard )
 {
     for (size_t i = 0; i < discard->n_children; i++) {
-        if (discard->children[i] != NULL) {
+        if (discard->children[i]) {
             destroy_subtree(discard->children[i]);
         }
     }

@@ -73,7 +73,7 @@ expression_list : expression  {
                               node_init($$, EXPRESSION_LIST, NULL, 1);
                               $$->children[0] = $1;
                               }
-                | expression_list ',' identifier {
+                | expression_list ',' expression {
                                       $$ = (node_t *) malloc (sizeof(node_t));
                                       node_init($$, EXPRESSION_LIST, NULL, 2);
                                       $$->children[0] = $1;
@@ -276,7 +276,7 @@ expression : expression '+' expression  {
                                         $$->children[0] = $1;
                                         $$->children[1] = $3;
                                         }
-          | '-' expression              {
+          | '-' expression %prec UMINUS          {
                                         $$ = (node_t *) malloc (sizeof(node_t));
                                         node_init($$, EXPRESSION, strdup("-"), 1);
                                         $$->children[0] = $2;
