@@ -166,9 +166,10 @@ void prone_printitems( node_t *node ) {
 //     }
 // }
 
-bool is_simplifiable( node_t *node ) {
-    return  node->n_children > 0 && node->children[0]->type == node->type;
-}
+// bool is_simplifiable( node_t *node ) {
+//     return  node->n_children > 0 && node->children[0]->type == node->type;
+// }
+
 node_t* resolve_constant_expressions(node_t *node) {
 
     int64_t *result;
@@ -190,16 +191,17 @@ node_t* resolve_constant_expressions(node_t *node) {
             case '-':
                 *result = *(int64_t *)node->children[0]->data - *(int64_t *)node->children[1]->data;
                  break;
-             }
+        }
         node->children[0]->data = result;
         node->children[0]->type = NUMBER_DATA;
         node_finalize ( node->children[1] );
-        return node;
+        return node->children[0];
     }
 
     else if (node->n_children == 1 &&
         node->children[0]->type == NUMBER_DATA && node->data != NULL ) {
             *result = *((int64_t *)node->children[0]->data) * -1;
             node->children[0]->data = result;
+            return node->children[0];
         }
 }
