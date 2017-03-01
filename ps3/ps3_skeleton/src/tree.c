@@ -62,6 +62,36 @@ destroy_subtree ( node_t *discard )
         node_finalize ( discard );
     }
 }
+
+void
+simplify_tree ( node_t **simplified, node_t *root )
+{
+    if (!root) return;
+
+   // Recursion loop, move pointer to tree bottom
+    for (uint64_t i = 0; i < root->n_children; i++) {
+        simplify_tree( &root->children[i], root->children[i] );
+    }
+
+    // Prone singular nodes with one child and no useful data
+    if (is_syntactical(root)) {
+        root = prone_and_connect(root);
+    }
+    //simplify lists
+    else if( list_detected(root) && root->n_children > 1 )
+        root = flatten_list(root);
+
+    else if( root->type == PRINT_STATEMENT ) {
+        prone_printlists(root->children[0], root);
+        prone_printitems(root);
+    }
+
+    else if( root->type == EXPRESSION )
+        root = resolve_constant_expressions(root);
+
+    *simplified = root;
+}
+
 bool list_detected ( node_t *node) {
 
   switch (node->type) {
@@ -70,48 +100,47 @@ bool list_detected ( node_t *node) {
     case PRINT_LIST:
     case EXPRESSION_LIST:
     case VARIABLE_LIST:
-    case ARGUMENT_LIST:
-    case PARAMETER_LIST:
     case DECLARATION_LIST:
-      printf("nodetype%s\n", node_string[node->type] );
+    //   printf("nodetype%s\n", node_string[node->type] );
       return true;
       break;
     default:
-      printf("no list: %s\n", node_string[node->type] );
+    //   printf("no list: %s\n", node_string[node->type] );
       return false;
   }
 }
 
 // Returns true if the node has only 1 child and no meaningful data
-bool is_syntactic ( node_t *node ) {
-  return (node->n_children == 1 || node->type == node->children[0]->type) && !node->data ;
+bool is_syntactical ( node_t *node ) {
+  // return (node->n_children == 1 || node->type == node->children[0]->type) && !node->data ;
+  switch (node->type) {
+      case GLOBAL:
+      case STATEMENT:
+      case PRINT_ITEM:
+      case PARAMETER_LIST:
+      case ARGUMENT_LIST:
+        return true;
+  }
+  return false;
 }
 
-void flatten_list ( node_t *node ) {
+node_t* flatten_list ( node_t *node ) {
   //delete internal nodes of list structures
-  // leave parent = list type, and children = list items
   node_t *child = node->children[0];
   node_t **extended = (node_t **) realloc ( child->children, (child->n_children+1)*sizeof(node_t*) );
   extended[child->n_children] = node->children[1];
-  node->n_children = child->n_children + 1;
-  node->children = extended;
+  child->n_children = child->n_children + 1;
+  child->children = extended;
   node_finalize(node);
+  return child;
 }
 
-// void prone_global (node_t *node) {
-//   return;void prone_and_connect ( node_t *node ) {
-// }
-
-// void remove_print_list_items ( node_t *node ) {
-//   for (uint64_t i = 0; i < node->n_children; i++) {
-//
-//   }
-// }
-void prone_and_connect ( node_t *node) {
+node_t* prone_and_connect ( node_t *node) {
     node_t *child = node->children[0];
     node_finalize(node);
     node = child;
     node_finalize(child);
+    return node;
 }
 
 void prone_printlists( node_t *node, node_t *parent ) {
@@ -128,97 +157,49 @@ void prone_printitems( node_t *node ) {
         node_finalize(child);
     }
 }
-
-void prone_global(node_t *node) {
-    for ( uint64_t i=0; i<node->children[0]->n_children; i++ ) {
-        node_t *child = node->children[0]->children[i];
-        node->children[0]->children[i] = child->children[0];
-        node_finalize ( child );
-    }
-}
+//
+// void prone_global(node_t *node) {
+//     for ( uint64_t i=0; i<node->children[0]->n_children; i++ ) {
+//         node_t *child = node->children[0]->children[i];
+//         node->children[0]->children[i] = child->children[0];
+//         node_finalize ( child );
+//     }
+// }
 
 bool is_simplifiable( node_t *node ) {
     return  node->n_children > 0 && node->children[0]->type == node->type;
 }
-void
-resolve_constant_expressions(node_t *node) {
-    size_t num_data = 1;
-    for ( uint64_t i=0; i<root->n_children; i++ ) {
-        if (root->children[i]->type != NUMBER_DATA)
-            num_data = 0;
+node_t* resolve_constant_expressions(node_t *node) {
+
+    int64_t *result;
+
+    if (node->n_children == 2 &&
+        node->children[0]->type == NUMBER_DATA &&
+        node->children[1]->type == NUMBER_DATA) {
+
+        switch (*(char*)node->data) {
+            case '*':
+                *result = *(int64_t *) node->children[0]->data * *(int64_t *)node->children[1]->data;
+                 break;
+            case '/':
+                *result = *(int64_t *)node->children[0]->data / *(int64_t *)node->children[1]->data;
+                 break;
+            case '+':
+                *result = *(int64_t *)node->children[0]->data + *(int64_t *)node->children[1]->data;
+                 break;
+            case '-':
+                *result = *(int64_t *)node->children[0]->data - *(int64_t *)node->children[1]->data;
+                 break;
+             }
+        node->children[0]->data = result;
+        node->children[0]->type = NUMBER_DATA;
+        node_finalize ( node->children[1] );
+        return node;
     }
-    if (num_data) {
-        int64_t *result = malloc( sizeof(int64_t) );
-        switch (*(long*)node->data) {
-            case NULL: *result = *(long*)node->children[0]->data; break;
-            case "*":
-                *result = *(long*)(node->children[0]->data) * *(long*)(node->children[1]->data);
-                break;
-            case "/":
-                *result = *(long*)(node->children[0]->data) / *(long*)(node->children[1]->data);
-                break;
-            case "+":
-                *result = *(long*)(node->children[0]->data) + *(long*)(node->children[1]->data);
-                break;
-            case "-":
-                if (node->n_children == 1) {
-                    *result = - *(long*)(node->children[0]->data);
-                    break;
-                }
-                else {
-                    *result = *(long*)(node->children[0]->data) - *(long*)(node->children[1]->data);
-                    break;
-                }
-            }
 
-            for ( size_t i=0; i < node->n_children; i++ ) {
-                destroy_subtree( node->children[i] );
-            }
-
-            free ( node->children );
-            free ( node->data );
-            node->n_children = 0;
-            node->data = result;
-            node->type = NUMBER_DATA;
+    else if (node->n_children == 1 &&
+        node->children[0]->type == NUMBER_DATA && node->data != NULL ) {
+            *result = *((int64_t *)node->children[0]->data) * -1;
+            node->children[0]->data = result;
         }
-}
-
-
-void
-simplify_tree ( node_t **simplified, node_t *root )
-{
-  // Recursion loop, move pointer to tree bottom
-    for (uint64_t i = 0; i < root->n_children; i++) {
-        if (root->children[i] != NULL) {
-            simplify_tree( &root->children[i], root->children[i] );
-        }
-    }
-    // Prone singular nodes with one child and no useful data
-    // if ( is_syntactic(root) ) {
-    //   prone_and_connect ( root ); //sjekk om den setter rozot like barnenoden !!!!
-    // }
-
-    //simplify lists
-    if( list_detected(root) && is_simplifiable(root) )
-        flatten_list(root);
-
-    switch ( root->type ) {
-        case PRINT_STATEMENT:
-            prone_printlists(root->children[0], root);
-            prone_printitems(root);
-            break;
-        case PROGRAM:
-            prone_global(root);
-            break;
-        case PARAMETER_LIST:
-        case ARGUMENT_LIST:
-        case STATEMENT:
-            prone_and_connect(root);
-            break;
-        case EXPRESSION:
-            resolve_constant_expressions(root);
-
-    }
-
-    *simplified = root;
 }

@@ -18,4 +18,11 @@ extern char yytext[];
 
 extern node_t *root;
 
+bool list_detected ( node_t *node );
+bool is_syntactical ( node_t *node );
+node_t* flatten_list ( node_t *node );
+node_t* prone_and_connect ( node_t *node );
+void prone_printlists( node_t *node, node_t *parent );
+void prone_printitems( node_t *node );
+node_t* resolve_constant_expressions(node_t *node);
 #endif
