@@ -5,6 +5,7 @@ tlhash_t **scope_table = NULL ;
 char **string_list= NULL;
 size_t n_string_list = 8, stringc = 0;
 
+int n_scope_table = 1, d = 0;
 
 void
 find_globals ( void )
@@ -22,7 +23,7 @@ find_globals ( void )
         node_t *global = globals->children[i];
 
         if (global->type == FUNCTION) {
-            printf ( "FIND_GLOBAL-->FUNCTION:**************\n" );
+            // printf ( "FIND_GLOBAL-->FUNCTION:**************\n" );
             symbol = malloc(sizeof(symbol_t));
             // function
             // symbol = malloc(sizeof(symbol_t));
@@ -60,12 +61,12 @@ find_globals ( void )
         }
 
         else if(global->type == DECLARATION) {
-            printf ( "FIND_GLOBAL-->DECLARATION:**************\n" );
+            // printf ( "FIND_GLOBAL-->DECLARATION:**************\n" );
 
             name_list = global->children[0];
 
             for (size_t j = 0; j < name_list->n_children; j++) {
-                // symbol = malloc(sizeof(symbol_t));
+                symbol = malloc(sizeof(symbol_t));
                 symbol->nparms = 0;
                 symbol->seq = 0;
                 symbol->name = name_list->children[j]->data;
@@ -82,20 +83,21 @@ find_globals ( void )
 void
 bind_names ( symbol_t *function, node_t *root )
 {
-    printf ( "BIND_NAMES:**************\n" );
+    // printf ( "BIND_NAMES:**************\n" );
 
-    if (root != NULL) {
+    if (root == NULL) return;
+    else {
 
         node_t *name_list=NULL;
-        tlhash_t **scope_table = malloc( sizeof(tlhash_t*));
-        symbol_t *symbols=NULL;
-        symbol_t *symbol=NULL;
+        symbol_t *symbol_entry=NULL;
 
-        int n_scope_table = 1, d = 0;
+        // scope_table = malloc( sizeof(tlhash_t*) * n_scope_table );
 
         if (root->type == BLOCK) {
-            printf ( "BIND_NAMES-->BLOCK:**************\n" );
-
+            // printf ( "BIND_NAMES-->BLOCK:**************\n" );
+            if (!scope_table) {
+                scope_table = malloc ( n_scope_table * sizeof(tlhash_t *) );
+            }
             tlhash_t *scope = malloc(sizeof(tlhash_t));
             tlhash_init(scope, 32);
             scope_table[d] = scope;
@@ -113,6 +115,7 @@ bind_names ( symbol_t *function, node_t *root )
             d--;
             tlhash_finalize(scope_table[d]);
             free(scope_table[d]);
+            scope_table[d]=NULL;
         }
 
         else if( root->type == DECLARATION ) {
@@ -121,6 +124,7 @@ bind_names ( symbol_t *function, node_t *root )
             name_list = root->children[0];
 
             for (uint64_t i = 0; i < name_list->n_children; i++) {
+                printf ( "BIND_NAMES-->loop0:**************\n" );
 
                 node_t *variable_name = name_list->children[i];
                 size_t local_n = tlhash_size(function->locals) - function->nparms;
@@ -132,41 +136,54 @@ bind_names ( symbol_t *function, node_t *root )
                 symbol->locals = NULL;
                 symbol->type = SYM_LOCAL_VAR;
                 symbol->node = NULL;
+                // printf ( "BIND_NAMES-->loop1:**************\n" );
 
                 tlhash_insert(function->locals, &local_n, sizeof(size_t), symbol);
+                // printf ( "BIND_NAMES-->loop2:**************\n" );
+
                 tlhash_insert(scope_table[d-1], symbol->name, strlen(symbol->name), symbol);
+                // printf ( "BIND_NAMES-->loop3:**************\n" );
+
             }
         }
 
         else if (root->type == IDENTIFIER_DATA) {
             printf ( "BIND_NAMES-->DECLARATION_DATA:**************\n" );
-
-            // lookup in the table
+            symbol_t *s = NULL;
+        //    lookup in the table
+            // for (size_t i = d-1; i <= 0; i--) {
+            //     if (symbol_entry!=NULL) break;
+            //     tlhash_lookup(scope_table[i], root->data, strlen(root->data), (void **)&s);
+            // }
             int d_loc = d;
-            symbols = NULL;
-            while ( symbols == NULL && d > 0) {
+            while ( s == NULL && d > 0) {
+                printf ( "BIND_NAMES-->lookup:**************\n" );
                 d_loc--;
-                tlhash_lookup(scope_table[d_loc], root->data, strlen(root->data), (void **)&symbols);
+                tlhash_lookup(scope_table[d_loc], root->data, strlen(root->data), (void **)&s);
             }
+            symbol_entry = s;
+
             // a parameter
-            if (symbols == NULL)
+            if (symbol_entry==NULL) {
                 printf ( "BIND_NAMES-->parameter:**************\n" );
-
-                tlhash_lookup(function->locals, root->data, strlen(root->data), (void**)&symbols);
+                tlhash_lookup(function->locals, root->data, strlen(root->data), (void**)&symbol_entry);
+            }
             // a global name
-            if (symbols == NULL)
-            printf ( "BIND_NAMES-->global name:**************\n" );
-
-                tlhash_lookup(global_names, root->data, strlen(root->data), (void**)&symbols);
+            if (symbol_entry==NULL) {
+                printf ( "BIND_NAMES-->global name:**************\n" );
+                tlhash_lookup(global_names, root->data, strlen(root->data), (void**)&symbol_entry);
+            }
             // exit on failure
-            if (symbols == NULL)
-                exit(0);
+            if (symbol_entry==NULL) {
+                printf ( "BIND_NAMES-->failure:**************\n" );
 
-            root->entry = symbols;
+                exit(1);}
+
+            root->entry = symbol_entry;
         }
 
         else if (root->type == STRING_DATA) {
-            printf ( "BIND_NAMES-->STRING_DATA:**************\n" );
+            // printf ( "BIND_NAMES-->STRING_DATA:**************\n" );
 
             //legge til string og index
             string_list[stringc] = root->data;
@@ -192,7 +209,7 @@ bind_names ( symbol_t *function, node_t *root )
 void
 destroy_symtab ( void )
 {
-    printf ( "DESTROY:**************\n" );
+    // printf ( "DESTROY:**************\n" );
 
     // destroy string_list
     for (size_t i = 0; i < stringc; i++) {
@@ -200,17 +217,18 @@ destroy_symtab ( void )
     }
     free(string_list);
 
-    symbol_t **globs = malloc( tlhash_size(global_names) * sizeof(symbol_t) );
-    symbol_t *global=NULL;
+    symbol_t *globs[tlhash_size(global_names)];// = malloc( tlhash_size(global_names) * sizeof(symbol_t *) );
 
     tlhash_values(global_names, (void**)&globs);
 
     for (size_t i = 0; i < tlhash_size(global_names); i++) {
-        global =  globs[i];
+        symbol_t *global =  globs[i];
+        // printf ( "DESTROY-->loop:**************\n" );
 
-        if (global->locals) {
+        if (global->locals!=NULL) {
+            // printf ( "DESTROY-->loop-->locals:**************\n" );
 
-            symbol_t **local_symbols = malloc (tlhash_size(global->locals) * sizeof(symbol_t));
+            symbol_t *local_symbols[tlhash_size(global->locals)];// = malloc (tlhash_size(global->locals) * sizeof(symbol_t *));
             tlhash_values(global->locals, (void**)&local_symbols);
 
             for (size_t j = 0; j < tlhash_size(global->locals); j++) {
