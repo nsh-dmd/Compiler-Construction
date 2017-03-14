@@ -119,7 +119,7 @@ bind_names ( symbol_t *function, node_t *root )
         }
 
         else if( root->type == DECLARATION ) {
-            printf ( "BIND_NAMES-->DECLARATION:**************\n" );
+            // printf ( "BIND_NAMES-->DECLARATION:**************\n" );
 
             name_list = root->children[0];
 
