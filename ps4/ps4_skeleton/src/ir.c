@@ -1,29 +1,29 @@
 #include <vslc.h>
 
-tlhash_t *global_names, **scope_table ;
-char **string_list;
+tlhash_t *global_names = NULL;
+tlhash_t **scope_table = NULL ;
+char **string_list= NULL;
 size_t n_string_list = 8, stringc = 0;
 
 
 void
 find_globals ( void )
 {
-    global_names = malloc ( sizeof(tlhash_t) );
+    global_names = malloc( sizeof(tlhash_t) );
     tlhash_init ( global_names, 32 );
-    string_list = malloc( sizeof(char) * n_string_list );
-
+    string_list = malloc( sizeof(char*) * n_string_list );
     node_t *globals = root->children[0];
     size_t n_func = 0;
 
     for (uint64_t i = 0; i < globals->n_children; i++) {
 
-        symbol_t *symbol = malloc(sizeof(symbol_t));
-        node_t *name_list;
+        symbol_t *symbol = NULL;// = malloc(sizeof(symbol_t));
+        node_t *name_list = NULL;
         node_t *global = globals->children[i];
 
         if (global->type == FUNCTION) {
             printf ( "FIND_GLOBAL-->FUNCTION:**************\n" );
-
+            symbol = malloc(sizeof(symbol_t));
             // function
             // symbol = malloc(sizeof(symbol_t));
             symbol->nparms = 0;
@@ -86,10 +86,10 @@ bind_names ( symbol_t *function, node_t *root )
 
     if (root != NULL) {
 
-        node_t *name_list;
+        node_t *name_list=NULL;
         tlhash_t **scope_table = malloc( sizeof(tlhash_t*));
-        symbol_t *symbols;
-        symbol_t *symbol;
+        symbol_t *symbols=NULL;
+        symbol_t *symbol=NULL;
 
         int n_scope_table = 1, d = 0;
 
@@ -113,7 +113,6 @@ bind_names ( symbol_t *function, node_t *root )
             d--;
             tlhash_finalize(scope_table[d]);
             free(scope_table[d]);
-
         }
 
         else if( root->type == DECLARATION ) {
@@ -126,7 +125,7 @@ bind_names ( symbol_t *function, node_t *root )
                 node_t *variable_name = name_list->children[i];
                 size_t local_n = tlhash_size(function->locals) - function->nparms;
 
-                symbol = malloc(sizeof(symbol_t));
+                symbol_t *symbol = malloc(sizeof(symbol_t));
                 symbol->nparms = 0;
                 symbol->seq = local_n;
                 symbol->name = variable_name->data;
@@ -151,9 +150,13 @@ bind_names ( symbol_t *function, node_t *root )
             }
             // a parameter
             if (symbols == NULL)
+                printf ( "BIND_NAMES-->parameter:**************\n" );
+
                 tlhash_lookup(function->locals, root->data, strlen(root->data), (void**)&symbols);
             // a global name
             if (symbols == NULL)
+            printf ( "BIND_NAMES-->global name:**************\n" );
+
                 tlhash_lookup(global_names, root->data, strlen(root->data), (void**)&symbols);
             // exit on failure
             if (symbols == NULL)
@@ -170,6 +173,7 @@ bind_names ( symbol_t *function, node_t *root )
             root->data = malloc( sizeof(size_t) );
             *((size_t*)root->data) = stringc;
             stringc++;
+
             if (n_string_list <= stringc) {
                 n_string_list *= 2;
                 string_list = realloc(string_list, n_string_list * sizeof(char*));
@@ -197,7 +201,7 @@ destroy_symtab ( void )
     free(string_list);
 
     symbol_t **globs = malloc( tlhash_size(global_names) * sizeof(symbol_t) );
-    symbol_t *global;
+    symbol_t *global=NULL;
 
     tlhash_values(global_names, (void**)&globs);
 
