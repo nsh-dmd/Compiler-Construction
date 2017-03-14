@@ -10,10 +10,10 @@ main ( int argc, char **argv )
     yyparse();
     simplify_tree ( &root, root );
 
-    printf ( "FIND_GLOBAL-->before:**************\n" );
+    // printf ( "FIND_GLOBAL-->before:**************\n" );
     /* Put the global names in the global symbol table */
     find_globals();
-    printf ( "FIND_GLOBAL-->after:**************\n" );
+    // printf ( "FIND_GLOBAL-->after:**************\n" );
 
 
 
