@@ -1,0 +1,16 @@
+vslc
+parser.c
+scanner.c
+y.tab.h
+.DS_Store
+*~
+*.o
+*.a
+*.zip
+*.tar
+*.gz
+*.pdf
+*.exe
+*.table
+*.tree
+*.log
