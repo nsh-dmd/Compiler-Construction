@@ -3,6 +3,8 @@ parser.c
 scanner.c
 y.tab.h
 .DS_Store
+*.aux
+*.dSYM
 *~
 *.o
 *.a
