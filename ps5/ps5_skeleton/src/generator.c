@@ -17,10 +17,53 @@ generate_stringtable ( void )
     puts ( "strout: .string \"\%s \"" );
     puts ( "errout: .string \"Wrong number of arguments\"" );
 
-    /* TODO:  handle the strings from the program */
-
+    // lable all strings with number
+    for (size_t i = 0; i < stringc; i++) {
+        printf("STR%zu: .string\t%s\n", i, string_list[i] );
+    }
 }
 
+static void generate_global_variables ( void ) {
+
+  puts ( ".section data" );
+  
+  // number of global variables in hash table
+  size_t n_globs = tlhash_size( global_names );
+  // get global variables values and store in a symbol array
+  symbol_t **symbols = malloc( n_globs * sizeof(symbol_t *) );
+  tlhash_values( global_names, (void **)&symbols);
+
+  // put lables under .section data for global vars
+  for (size_t i = 0; i < n_globs; i++) {
+    if ( symbols[i]->type == SYM_GLOBAL_VAR ) {
+      printf( "_%s\t.zero 8\n", symbols[i]->name);
+    }
+  }
+     
+}
+
+
+static void place_args_on_stack ( size_t n_args ) {
+
+  for ( size_t i = 0; i < MIN(n_args, 6); i++) {
+    printf( "\tpushq\t%s\n", record[i] );
+  }
+
+  // hva med resten av argumentene ?????????????????????
+}
+
+static void generate_function_call ( symbol_t function ) {
+
+  printf( "_%s:\n", function->name );
+  puts ( "\tpushq %rbp" );
+  puts ( "\tmovq %rsp, %rbp" );
+
+  // arguments on stack
+  place_args_on_stack( function->nparams );
+
+  // local variables?
+  
+}
 
 static void
 generate_main ( symbol_t *first )
@@ -70,7 +113,6 @@ generate_main ( symbol_t *first )
     puts ( "\tmovq %rax, %rdi" );
     puts ( "\tcall exit" );
 }
-
 
 void
 generate_program ( void )
