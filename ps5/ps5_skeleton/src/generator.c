@@ -1,17 +1,11 @@
 #include "vslc.h"
 
-#define MIN(a,b) (((a)<(b)) ? (a):(b))
-static const char *record[6] = {
-    "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"
-};
-
-
 static void
 generate_stringtable ( void )
 {
     /* These can be used to emit numbers, strings and a run-time
      * error msg. from main
-     */ 
+     */
     puts ( ".section .rodata" );
     puts ( "intout: .string \"\%ld \"" );
     puts ( "strout: .string \"\%s \"" );
@@ -26,7 +20,7 @@ generate_stringtable ( void )
 static void generate_global_variables ( void ) {
 
   puts ( ".section data" );
-  
+
   // number of global variables in hash table
   size_t n_globs = tlhash_size( global_names );
   // get global variables values and store in a symbol array
@@ -39,32 +33,61 @@ static void generate_global_variables ( void ) {
       printf( "_%s\t.zero 8\n", symbols[i]->name);
     }
   }
-     
+
 }
 
 
-static void place_args_on_stack ( size_t n_args ) {
+static void allocate_args ( size_t n_args ) {
 
-  for ( size_t i = 0; i < MIN(n_args, 6); i++) {
-    printf( "\tpushq\t%s\n", record[i] );
+  // for ( size_t i = 0; i < MIN(n_args, 6); i++) {
+  for ( size_t i = 0; i < n_args; i++) {
+      ASM1(pushq, record[i]);
+      if (i > 5) {
+          // i = argument index for remaining args not fitting into registers
+          ASM1(pushq, %rbp + 8*i);
+      }
   }
 
-  // hva med resten av argumentene ?????????????????????
 }
 
-static void generate_function_call ( symbol_t function ) {
+static void generate_function_call ( symbol_t *function ) {
 
   printf( "_%s:\n", function->name );
-  puts ( "\tpushq %rbp" );
-  puts ( "\tmovq %rsp, %rbp" );
+  ASM1(pushq, %rbp);
+  ASM2(movq, %rsp, %rbp);
 
   // arguments on stack
-  place_args_on_stack( function->nparams );
+  allocate_args( function->nparms );
 
-  // local variables?
-  
+  // local variables ????????
+  for (size_t i = 0; i < tlhash_size(function->locals); i++) {
+      ASM2(subq, $8, %rsp);
+  }
+
 }
 
+/* puts expression result in %rax */
+static void generate_subexpression1 (node_t *node, symbol_t *function ) {
+
+    // numbers translate into setting them in %rax
+    if (node->type == NUMBER_DATA) {
+        FASM3(movq, %rax, *(int64_t *)node->data, %l64d);
+    }
+    // variables translate into copying their contents to %rax
+    else if (node->type == IDENTIFIER_DATA) {
+        FASM3(movq, %rax, node->entry, %ld);
+    }
+}
+
+/* obtains expression result in %rax */
+static void generate_subexpression2 ( ) {
+
+}
+
+/* Generate code for r.h.s expression */
+static void generate_assignment ( node_t *node ) {
+    ASM2(movq, , %rax);
+}
 static void
 generate_main ( symbol_t *first )
 {
