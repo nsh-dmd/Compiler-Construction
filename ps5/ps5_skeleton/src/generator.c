@@ -61,13 +61,41 @@ static void generate_function_call ( symbol_t *function ) {
 
   // local variables ????????
   for (size_t i = 0; i < tlhash_size(function->locals); i++) {
-      ASM2(subq, $8, %rsp);
+      ASM2(subq, $8, %rbp);
   }
+  puts("leave");
+  puts("ret");
 
 }
 
+static void generate_identifier (node_t node, symbol_t *function) {
+    if (node->entry == SYM_GLOBAL_VAR) {
+        printf("\tmovq\t_%s, %%rax\n", node->entry->name);
+    }
+    else if (node->entry == SYM_LOCAL_VAR) {
+        // parms fit into registers
+        if (function->nparms < 7) {
+            // fra bunnen oppover
+            printf("\tmovq\t%ld(%%rbp)\n", -8 * (function->nparms + node->entry->seq) );
+        }
+        // nparms gte 6
+        else {
+            printf("\tmovq\t%ld(%%rbp)\n", -8 * (node->entry->seq + 6) );
+        }
+    }
+    else if (node->entry == SYM_PARAMETER) {
+        if (node->entry->seq < 7) {
+            printf("\tmovq\t%ld(%%rbp)\n", -8 * (node->entry->seq) );
+        }
+        else {
+            printf("\tmovq\t%ld(%%rbp)\n", -8 * (node->entry->seq + 6) );
+        }
+    }
+}
+
+
 /* puts expression result in %rax */
-static void generate_subexpression1 (node_t *node, symbol_t *function ) {
+static void generate_subexpression (node_t *node, symbol_t *function ) {
 
     // numbers translate into setting them in %rax
     if (node->type == NUMBER_DATA) {
@@ -75,8 +103,18 @@ static void generate_subexpression1 (node_t *node, symbol_t *function ) {
     }
     // variables translate into copying their contents to %rax
     else if (node->type == IDENTIFIER_DATA) {
+        // if IDENTIFIER_DATA then it can be global, local || parameter variable
+        generate_identifier(node, function);
         FASM3(movq, %rax, node->entry, %ld);
     }
+    else if (node->type == EXPRESSION) {
+        generate_subexpression(node, function);
+    }
+
+    // check for # of children/ child nodes
+    // if (/* condition */) {
+    //     /* code */
+    // }
 }
 
 /* obtains expression result in %rax */
@@ -87,6 +125,20 @@ static void generate_subexpression2 ( ) {
 /* Generate code for r.h.s expression */
 static void generate_assignment ( node_t *node ) {
     ASM2(movq, , %rax);
+}
+static void generate_print_statement(node_t node) {
+    if (/* condition */) {
+        /* code */
+    }
+}
+
+static void generate_return_statement () {
+    if (node->type == IDENTIFIER_DATA) {
+        /* code */
+    }
+    else if (node->type == NUMBER_DATA) {
+
+    }
 }
 static void
 generate_main ( symbol_t *first )
