@@ -39,15 +39,16 @@ static void generate_global_variables ( void ) {
 
 static void allocate_args ( size_t n_args ) {
 
-  // for ( size_t i = 0; i < MIN(n_args, 6); i++) {
-  for ( size_t i = 0; i < n_args; i++) {
+  for ( size_t i = 0; i < MIN(n_args, 6); i++)
       ASM1(pushq, record[i]);
-      if (i > 5) {
-          // i = argument index for remaining args not fitting into registers
+
+  if (n_args > 6) {
+      // i = argument index for remaining args not fitting into registers
+      size_t r = n_args - 6;
+      for (size_t i = 6; i < r; i++) {
           ASM1(pushq, %rbp + 8*i);
       }
   }
-
 }
 
 static void generate_function_call ( symbol_t *function ) {
@@ -56,43 +57,100 @@ static void generate_function_call ( symbol_t *function ) {
   ASM1(pushq, %rbp);
   ASM2(movq, %rsp, %rbp);
 
-  // arguments on stack
+  // make space arguments on stack
   allocate_args( function->nparms );
 
-  // local variables ????????
-  for (size_t i = 0; i < tlhash_size(function->locals); i++) {
-      ASM2(subq, $8, %rbp);
+  // local variables
+  ASM1( subq, 8 * tlhash_size(function->locals) );
+
+  node_t *func_node = function->node;
+
+  switch (func_node->type) {
+      case PRINT_STATEMENT:
+      for ( size_t i=0; i<func_node->n_children; i++ ) {
+          generate_print(func_node->children[i], function);
+      }
+      ASM2 ( movq, $'\n', %rdi );
+      ASM1 ( call, putchar );
+      break;
+
+      case EXPRESSION:
+      generate_subexpression(func_node, function);
+      break;
+
+      case ASSIGNMENT_STATEMENT:
+      generate_assignment(func_node, function);
+      break;
+
+      case RETURN_STATEMENT:
+      generate_subexpression(func_node->children[0], function);
+      puts("leave");
+      puts("ret");
+      break;
   }
-  puts("leave");
-  puts("ret");
 
 }
 
 static void generate_identifier (node_t node, symbol_t *function) {
     if (node->entry == SYM_GLOBAL_VAR) {
-        printf("\tmovq\t_%s, %%rax\n", node->entry->name);
+        printf("\tmovq\t_%s, ", node->entry->name);
     }
     else if (node->entry == SYM_LOCAL_VAR) {
-        // parms fit into registers
-        if (function->nparms < 7) {
-            // fra bunnen oppover
-            printf("\tmovq\t%ld(%%rbp)\n", -8 * (function->nparms + node->entry->seq + 1) );
-        }
-        // nparms gte 6
-        else {
-            printf("\tmovq\t%ld(%%rbp)\n", -8 * (node->entry->seq + 6) );
-        }
+        printf("\tmovq\t%ld(%%rbp)\n", -8 * (function->nparms + node->entry->seq + 1) );
     }
     else if (node->entry == SYM_PARAMETER) {
         if (node->entry->seq < 7) {
-            printf("\tmovq\t%ld(%%rbp)\n", -8 * (node->entry->seq + 1) );
+            printf("\tmovq\t%ld(%%rbp)\n", record[node->entry->seq] );
         }
         else {
             printf("\tmovq\t%ld(%%rbp)\n", -8 * (node->entry->seq + 6) );
         }
     }
 }
+static void add_exp(node_t *node, symbol_t *func) {
+    generate_subexpression(node->children[0], func);
 
+    ASM1(pushq, %rax);
+    generate_subexpression(node->children[1], func);
+    ASM2(addq, %rax, %rsp);
+
+    ASM1(popq, %rax);
+}
+
+static void mult_exp(node_t *node, symbol_t *func) {
+    ASM1(pushq, %rdx);
+    generate_subexpression(node->children[1], func);
+
+    ASM1(pushq, %rax);
+    generate_subexpression(node->children[0], func);
+    ASM0(cqo);
+    ASM1(imulq, %rsp);
+
+    ASM1(popq, %rdx);
+}
+
+static void sub_exp(node_t *node, symbol_t *func) {
+
+    generate_subexpression(node->children[0], func);
+
+    ASM1(pushq, %rax);
+    generate_subexpression(node->children[1], func);
+    ASM2(subq, %rax, %rsp);
+
+    ASM1(popq, %rax);
+}
+
+static void div_exp(node_t *node, symbol_t *func) {
+    ASM1(pushq, %rdx);
+    generate_subexpression(node->children[1], func);
+
+    ASM1(pushq, %rax);
+    generate_subexpression(node->children[0], func);
+    ASM0 ( cqo );
+    ASM1 ( idivq, %rsp );
+
+    ASM1 ( popq, %rdx );
+}
 
 /* puts expression result in %rax */
 static void generate_subexpression (node_t *node, symbol_t *function ) {
@@ -105,41 +163,77 @@ static void generate_subexpression (node_t *node, symbol_t *function ) {
     else if (node->type == IDENTIFIER_DATA) {
         // if IDENTIFIER_DATA then it can be global, local || parameter variable
         generate_identifier(node, function);
-        FASM3(movq, %rax, node->entry, %ld);
-    }
-    else if (node->type == EXPRESSION) {
-        generate_subexpression(node, function);
+        printf(", %%rax\n");
     }
 
-    // check for # of children/ child nodes
-    // if (/* condition */) {
-    //     /* code */
-    // }
+    // arithmetic *, /, +, -
+    else if (node->n_children == 2) {
+        if (node->data) {
+
+            switch (*(char*)node->data) {
+                case '*':
+                    mult_exp(node, function);
+                    break;
+                case '/':
+                    div_exp(node, function);
+                    break;
+                case '+':
+                    add_exp(node, function);
+                    break;
+                case '-':
+                    sub_exp(node, function);
+                    break;
+            }
+        }
+    }
+
+    // negation
+    if (node->n_children == 1) {
+        generate_subexpression(node->children[0], first_function);
+        ASM1(negq, %rax);
+    }
+
+
 }
 
-/* obtains expression result in %rax */
-static void generate_subexpression2 ( ) {
-
-}
 
 /* Generate code for r.h.s expression */
-static void generate_assignment ( node_t *node ) {
-    ASM2(movq, , %rax);
+static void generate_assignment ( node_t *node, symbol_t func ) {
+    generate_subexpression(node, func);
+    generate_identifier(node, func);
 }
-static void generate_print_statement(node_t node) {
-    if (/* condition */) {
-        /* code */
+
+static void generate_print(node_t node, symbol_t func) {
+
+    switch( node->type ) {
+        case STRING_DATA:
+        printf("\tmovq\t$STR%zu, %%rsi\n", *((size_t *)node->data));
+        ASM2(movq, $strout, %rdi);
+        ASM1 (call, printf);
+        break;
+
+        case NUMBER_DATA:
+        printf("\tmovq\t$%lld, %%rsi\n", *((int64_t *)node->data) );
+        ASM2(movq, $intout, %rdi);
+        ASM1(call, printf);
+        break;
+
+        case IDENTIFIER_DATA:
+        generate_identifier ( node, func );
+        printf ( "%%rsi\n" );
+        ASM2 ( movq, $intout, %rdi );
+        ASM1 ( call, printf );
+        break;
+
+        case EXPRESSION:
+        generate_subexpression ( node, func );
+        ASM2 ( movq, %rax, %rsi );
+        ASM2 ( movq, $intout, %rdi );
+        ASM1 ( call, printf );
+        break;
     }
 }
 
-static void generate_return_statement () {
-    if (node->type == IDENTIFIER_DATA) {
-        /* code */
-    }
-    else if (node->type == NUMBER_DATA) {
-
-    }
-}
 static void
 generate_main ( symbol_t *first )
 {
@@ -192,12 +286,24 @@ generate_main ( symbol_t *first )
 void
 generate_program ( void )
 {
-    generate_stringtable();
+    symbol_t *func;
+    symbol_t *globals[tlhash_size(global_names)];
+    tlhash_values(global_names, (void **)&globals);
+    size_t n = tlhash_size(global_names);
 
-    /* Put some dummy stuff to keep the skeleton from crashing */
-    puts ( ".globl main" );
-    puts ( ".section .text" );
-    puts ( "main:" );
-    puts ( "\tmovq $0, %rax" );
-    puts ( "\tcall exit" );
+    for ( size_t i = 0; i < n; i++ ) {
+        if ( globals[i]->type == SYM_FUNCTION && globals[i]->seq == 0 ) {
+            first_function = globals[i];
+            break;
+        }
+    }
+
+    generate_stringtable();
+    generate_global_variables();
+    generate_main(func);
+    for (size_t i = 0; i < n; i++) {
+        if (globals[i] == SYM_FUNCTION) {
+            generate_function_call(globals[i]);
+        }
+    }
 }
