@@ -104,7 +104,7 @@ generate_main ( symbol_t *first )
 
 
 static void
-generate_identifier ( node_t *ident )
+generate_identifier ( node_t *ident, symbol_t *func )
 {
     symbol_t *symbol = ident->entry;
     switch ( symbol->type )
@@ -118,6 +118,8 @@ generate_identifier ( node_t *ident )
             else
                 printf ( "%ld(%%rbp)", -8*(symbol->seq+1) );
             break;
+        case SYM_LOCAL_VAR:
+            printf( "%ld(%%rbp)\n", -8 * (func->nparms + symbol->seq + 1) );
     }
 }
 
@@ -183,8 +185,11 @@ generate_expression ( node_t *expr )
             }
         }
     }
-}
 
+    else if ( expr->type == FUNCTION ) {
+        generate_function_call( expr );
+    }
+}
 
 static void
 generate_assignment_statement ( node_t *statement )
@@ -237,7 +242,21 @@ generate_print_statement ( node_t *statement )
     ASM2 ( addq, %r15, %rsp );
 }
 
+static void generate_if_statement ( symbol_t statement ) {
 
+    // put results
+    ASM1(pushq, %rdx);
+    generate_expression( statement->children[0] );
+    ASM1(pushq, %rax);
+    generate_expression( statement->children[1] );
+
+    //get results
+    ASM1(popq, %rax);
+    ASM2(compq, %rax, %rdx);
+    ASM1(popq, %rdx);
+
+    //TODO:labling
+}
 static void
 generate_node ( node_t *node )
 {
@@ -254,6 +273,8 @@ generate_node ( node_t *node )
             ASM0 ( leave );
             ASM0 ( ret );
             break;
+        case IF_STATEMENT:
+            generate_if_statement( node);
         default:
             RECUR(node);
             break;
@@ -273,7 +294,7 @@ generate_function ( symbol_t *function )
             printf ( "\tpushq\t%s\n", record[arg-1] );
     // Make space for locals in local stack frame
     size_t local_vars = tlhash_size(function->locals) - function->nparms;
-    if ( local_vars > 0 ) 
+    if ( local_vars > 0 )
         printf ( "\tsubq\t$%zu, %%rsp\n", 8*local_vars );
     if ( (tlhash_size(function->locals)&1) == 1 )
         puts ( "\tpushq\t$0" );
