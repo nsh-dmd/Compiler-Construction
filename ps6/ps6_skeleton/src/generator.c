@@ -25,6 +25,7 @@ static const char *record[6] = {
     "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"
 };
 
+size_t counter_suffix; // counter for labling of conditionals
 
 static void
 generate_stringtable ( void )
@@ -104,7 +105,7 @@ generate_main ( symbol_t *first )
 
 
 static void
-generate_identifier ( node_t *ident )
+generate_identifier ( node_t *ident, symbol_t *func )
 {
     symbol_t *symbol = ident->entry;
     switch ( symbol->type )
@@ -118,6 +119,8 @@ generate_identifier ( node_t *ident )
             else
                 printf ( "%ld(%%rbp)", -8*(symbol->seq+1) );
             break;
+        case SYM_LOCAL_VAR:
+            printf( "%ld(%%rbp)\n", -8 * (func->nparms + symbol->seq + 1) );
     }
 }
 
@@ -183,8 +186,11 @@ generate_expression ( node_t *expr )
             }
         }
     }
-}
 
+    else if ( expr->type == FUNCTION ) {
+        generate_function_call( expr );
+    }
+}
 
 static void
 generate_assignment_statement ( node_t *statement )
@@ -237,6 +243,61 @@ generate_print_statement ( node_t *statement )
     ASM2 ( addq, %r15, %rsp );
 }
 
+static void generate_if_statement ( symbol_t statement ) {
+
+    size_t n_children = statement->n_children;
+    counter_suffix++;
+
+    // put results
+    ASM1(pushq, %rdx);
+    generate_expression( statement->children[0] );
+    ASM1(pushq, %rax);
+    generate_expression( statement->children[1] );
+
+    //get results
+    ASM1(popq, %rax);
+    ASM2(compq, %rax, %rdx);
+    ASM1(popq, %rdx);
+
+
+    // Labling
+    switch ( *(char) statement->children[0]->data )) {
+
+        case '>':
+            if ( n_children == 2 ) {
+                printf( "\tjle\tENDIF%lu\n", counter_suffix );
+            }
+            else {
+                printf( "\tjle\tELSE%lu\n", counter_suffix );
+            }
+
+        case '<':
+            if ( n_children == 2 ) {
+                printf( "\tjge\tENDIF%lu\n", counter_suffix );
+            }
+            else {
+                printf( "\tjge\tELSE%lu\n", counter_suffix );
+            }
+
+        case '=':
+            if ( n_children == 2 ) {
+                printf( "\tjne\tENDIF%lu\n", counter_suffix );
+            }
+            else {
+                printf( "\tjne\tELSE%lu\n", counter_suffix );
+            }
+    }
+
+    generate_node ( statement->children[1] );
+
+    if ( n_children == 3 ) {
+        printf( "\tjne\tENDIF%lu\nELSE%lu:\n", counter_suffix, counter_suffix );
+        generate_node( statement->children[2] );
+    }
+
+    printf( "ENDIF%lu:\n", counter_suffix );
+
+}
 
 static void
 generate_node ( node_t *node )
@@ -254,6 +315,8 @@ generate_node ( node_t *node )
             ASM0 ( leave );
             ASM0 ( ret );
             break;
+        case IF_STATEMENT:
+            generate_if_statement( node);
         default:
             RECUR(node);
             break;
@@ -273,7 +336,7 @@ generate_function ( symbol_t *function )
             printf ( "\tpushq\t%s\n", record[arg-1] );
     // Make space for locals in local stack frame
     size_t local_vars = tlhash_size(function->locals) - function->nparms;
-    if ( local_vars > 0 ) 
+    if ( local_vars > 0 )
         printf ( "\tsubq\t$%zu, %%rsp\n", 8*local_vars );
     if ( (tlhash_size(function->locals)&1) == 1 )
         puts ( "\tpushq\t$0" );
@@ -284,6 +347,7 @@ generate_function ( symbol_t *function )
 void
 generate_program ( void )
 {
+    counter_suffix = 0;
     size_t n_globals = tlhash_size(global_names);
     symbol_t *global_list[n_globals];
     tlhash_values ( global_names, (void **)&global_list );
