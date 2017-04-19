@@ -24,8 +24,8 @@
 static const char *record[6] = {
     "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"
 };
-
-size_t counter_suffix; // counter for labling of conditionals
+static size_t func_nparms;
+static size_t if_counter=0, while_counter=0; // counters for labling
 
 static void
 generate_stringtable ( void )
@@ -105,11 +105,18 @@ generate_main ( symbol_t *first )
 
 
 static void
-generate_identifier ( node_t *ident, symbol_t *func )
+generate_identifier ( node_t *ident )
 {
     symbol_t *symbol = ident->entry;
     switch ( symbol->type )
     {
+        case SYM_LOCAL_VAR: // check for correctness with TA
+            // printf( "%ld(%%rbp)\n", -8 * (func_nparms + symbol->seq + 1) );
+            if ( symbol->seq > 5 )
+                    printf ( "%ld(%%rbp)", 8+8*(symbol->seq-5) );
+            else
+                printf ( "%ld(%%rbp)", (-8*(symbol->seq+1)));
+            break;
         case SYM_GLOBAL_VAR:
             printf ( "_%s", symbol->name );
             break;
@@ -119,11 +126,34 @@ generate_identifier ( node_t *ident, symbol_t *func )
             else
                 printf ( "%ld(%%rbp)", -8*(symbol->seq+1) );
             break;
-        case SYM_LOCAL_VAR:
-            printf( "%ld(%%rbp)\n", -8 * (func->nparms + symbol->seq + 1) );
     }
 }
 
+static void generate_function_call(node_t *expr) {
+
+    node_t *child = expr->children[1];
+
+    // push arguments to stack
+    for (size_t i = 0; i < MIN(6, child->n_children); i++){
+        generate_node(child->children[i]);
+        printf("\tpushq\t%s\n", record[i]);
+        printf("\tmovq\t%%rax, %s\n", record[i]);
+    }
+    // push remaining arguments
+    for (size_t i = 6; i < child->n_children; i++){
+        generate_node(child->children[i]);
+        printf("\tpushq\t%%rax\n");
+    }
+
+    printf("\tcall\t_%s\n", (char*)expr->children[0]->data);
+
+    if (child->n_children > 6){
+        printf("\taddq\t$%ld, %%rsp\n", (child->n_children-6)*8);
+    }
+    for (size_t i = MIN(6, child->n_children)-1; i != -1; i--){
+        printf("\tpopq\t%s\n", record[i]);
+    }
+}
 
 static void
 generate_expression ( node_t *expr )
@@ -187,7 +217,8 @@ generate_expression ( node_t *expr )
         }
     }
 
-    else if ( expr->type == FUNCTION ) {
+    else {
+    // else if ( expr->type == FUNCTION ) {
         generate_function_call( expr );
     }
 }
@@ -243,10 +274,11 @@ generate_print_statement ( node_t *statement )
     ASM2 ( addq, %r15, %rsp );
 }
 
-static void generate_if_statement ( symbol_t statement ) {
+static void generate_if_statement ( node_t* statement ) {
 
     size_t n_children = statement->n_children;
-    counter_suffix++;
+    if_counter++;
+    size_t count = if_counter;
 
     // put results
     ASM1(pushq, %rdx);
@@ -255,49 +287,80 @@ static void generate_if_statement ( symbol_t statement ) {
     generate_expression( statement->children[1] );
 
     //get results
+    // ASM2(cmpq, %rax, %rsp);
+    // ASM1(popq, %rax);
     ASM1(popq, %rax);
-    ASM2(compq, %rax, %rdx);
+    ASM2(cmpq, %rax, %rdx);
     ASM1(popq, %rdx);
 
 
     // Labling
-    switch ( *(char) statement->children[0]->data )) {
+    switch ( *(char*) statement->children[0]->data ) {
 
         case '>':
             if ( n_children == 2 ) {
-                printf( "\tjle\tENDIF%lu\n", counter_suffix );
+                printf( "\tjle\tENDIF%lu\n", count );
             }
             else {
-                printf( "\tjle\tELSE%lu\n", counter_suffix );
+                printf( "\tjle\tELSE%lu\n", count );
             }
 
         case '<':
             if ( n_children == 2 ) {
-                printf( "\tjge\tENDIF%lu\n", counter_suffix );
+                printf( "\tjge\tENDIF%lu\n", count );
             }
             else {
-                printf( "\tjge\tELSE%lu\n", counter_suffix );
+                printf( "\tjge\tELSE%lu\n", count );
             }
 
         case '=':
             if ( n_children == 2 ) {
-                printf( "\tjne\tENDIF%lu\n", counter_suffix );
+                printf( "\tjne\tENDIF%lu\n", count );
             }
             else {
-                printf( "\tjne\tELSE%lu\n", counter_suffix );
+                printf( "\tjne\tELSE%lu\n", count );
             }
     }
 
     generate_node ( statement->children[1] );
 
     if ( n_children == 3 ) {
-        printf( "\tjne\tENDIF%lu\nELSE%lu:\n", counter_suffix, counter_suffix );
+        printf ( "\tjmp\tENDIF%lu\n", count );
+        printf ( "ELSE%lu:\n", count );
         generate_node( statement->children[2] );
     }
 
-    printf( "ENDIF%lu:\n", counter_suffix );
+    printf( "ENDIF%lu:\n", count );
 
 }
+static void generate_while_statement(node_t *stmt) {
+    while_counter++;
+    size_t count = while_counter;
+
+    // size_t while_counter = while_count++;
+    printf("WHILELOOP%lu:\n", count);
+    generate_expression(stmt->children[0]->children[0]);
+    ASM1(pushq, %rax);
+    generate_expression(stmt->children[0]->children[1]);
+    ASM2(cmpq, %rax, %rsp);
+    ASM1(popq, %rax);
+
+    switch (*(char*)stmt->children[0]->data){
+        case '>':
+            printf("\tjle\tENDWHILE%zu\n", count);
+            break;
+        case '=':
+            printf("\tjne\tENDWHILE%zu\n", count);
+            break;
+        case '<':
+            printf("\tjge\tENDWHILE%zu\n", count);
+            break;
+    }
+    generate_node(stmt->children[1]);
+    printf("\tjmp\tWHILELOOP%zu\n", count);
+    printf("ENDWHILE%zu:\n", count);
+}
+
 
 static void
 generate_node ( node_t *node )
@@ -317,6 +380,12 @@ generate_node ( node_t *node )
             break;
         case IF_STATEMENT:
             generate_if_statement( node);
+        case WHILE_STATEMENT:
+            generate_while_statement( node );
+            break;
+        case NULL_STATEMENT:
+            printf("\tjmp\tWHILELOOP%zu\n", while_counter--);
+            break;
         default:
             RECUR(node);
             break;
@@ -340,6 +409,8 @@ generate_function ( symbol_t *function )
         printf ( "\tsubq\t$%zu, %%rsp\n", 8*local_vars );
     if ( (tlhash_size(function->locals)&1) == 1 )
         puts ( "\tpushq\t$0" );
+
+    func_nparms = function->nparms;
     generate_node ( function->node );
 }
 
@@ -347,7 +418,6 @@ generate_function ( symbol_t *function )
 void
 generate_program ( void )
 {
-    counter_suffix = 0;
     size_t n_globals = tlhash_size(global_names);
     symbol_t *global_list[n_globals];
     tlhash_values ( global_names, (void **)&global_list );
