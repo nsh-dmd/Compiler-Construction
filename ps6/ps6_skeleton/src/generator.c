@@ -1,9 +1,9 @@
 #include "vslc.h"
 
 #define MIN(a,b) (((a)<(b)) ? (a):(b))
-#define RECUR(nd) do { \
+#define RECUR(nd) do {				\
     for ( size_t i=0; i<(nd)->n_children; i++ ) \
-        generate_node ( (nd)->children[i] );    \
+        generate_node ( (nd)->children[i] );	\
 } while ( false )
 
 #define LBL(name) puts ( #name":" )
@@ -21,11 +21,13 @@
     ASM2 ( addq, %r15, %rsp ); \
 } while(0)
 
+
 static const char *record[6] = {
     "%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"
 };
-static size_t func_nparms;
-static size_t if_counter=0, while_counter=0; // counters for labling
+
+static size_t if_counter=0, while_counter=0; // labling counters
+static size_t nparms=0; // function->nparms
 
 static void
 generate_stringtable ( void )
@@ -37,7 +39,6 @@ generate_stringtable ( void )
     for ( size_t s=0; s<stringc; s++ )
         printf ( "STR%zu: .string %s\n", s, string_list[s] );
 }
-
 
 static void
 generate_global_variables ( void )
@@ -52,7 +53,6 @@ generate_global_variables ( void )
             printf ( "_%s: .zero 8\n", syms[n]->name );
     }
 }
-
 
 static void
 generate_main ( symbol_t *first )
@@ -103,20 +103,19 @@ generate_main ( symbol_t *first )
     puts ( "\tcall exit" );
 }
 
-
 static void
 generate_identifier ( node_t *ident )
 {
     symbol_t *symbol = ident->entry;
     switch ( symbol->type )
     {
-        case SYM_LOCAL_VAR: // check for correctness with TA
-            // printf( "%ld(%%rbp)\n", -8 * (func_nparms + symbol->seq + 1) );
-            if ( symbol->seq > 5 )
-                    printf ( "%ld(%%rbp)", 8+8*(symbol->seq-5) );
-            else
-                printf ( "%ld(%%rbp)", (-8*(symbol->seq+1)));
-            break;
+        case SYM_LOCAL_VAR:
+        // printf( "%ld(%%rbp)\n", -8 * (nparms + symbol->seq + 1) );
+        if ( nparms >= 6 )
+            printf ( "%ld(%%rbp)", -8*(6+symbol->seq+1) );
+        else
+            printf ( "%ld(%%rbp)", -8*(nparms+symbol->seq+1) );
+        break;
         case SYM_GLOBAL_VAR:
             printf ( "_%s", symbol->name );
             break;
@@ -126,32 +125,6 @@ generate_identifier ( node_t *ident )
             else
                 printf ( "%ld(%%rbp)", -8*(symbol->seq+1) );
             break;
-    }
-}
-
-static void generate_function_call(node_t *expr) {
-
-    node_t *child = expr->children[1];
-
-    // push arguments to stack
-    for (size_t i = 0; i < MIN(6, child->n_children); i++){
-        generate_node(child->children[i]);
-        printf("\tpushq\t%s\n", record[i]);
-        printf("\tmovq\t%%rax, %s\n", record[i]);
-    }
-    // push remaining arguments
-    for (size_t i = 6; i < child->n_children; i++){
-        generate_node(child->children[i]);
-        printf("\tpushq\t%%rax\n");
-    }
-
-    printf("\tcall\t_%s\n", (char*)expr->children[0]->data);
-
-    if (child->n_children > 6){
-        printf("\taddq\t$%ld, %%rsp\n", (child->n_children-6)*8);
-    }
-    for (size_t i = MIN(6, child->n_children)-1; i != -1; i--){
-        printf("\tpopq\t%s\n", record[i]);
     }
 }
 
@@ -180,14 +153,14 @@ generate_expression ( node_t *expr )
             switch ( *((char *)expr->data) )
             {
                 case '+':
-                    generate_expression ( expr->children[0] );
+		            generate_expression ( expr->children[0] );
                     ASM1 ( pushq, %rax );
                     generate_expression ( expr->children[1] );
                     ASM2 ( addq, %rax, (%rsp) );
                     ASM1 ( popq, %rax );
                     break;
                 case '-':
-                    generate_expression ( expr->children[0] );
+		            generate_expression ( expr->children[0] );
                     ASM1 ( pushq, %rax );
                     generate_expression ( expr->children[1] );
                     ASM2 ( subq, %rax, (%rsp) );
@@ -215,11 +188,27 @@ generate_expression ( node_t *expr )
                     break;
             }
         }
-    }
+        // generate function call
+    	else {
+	        for ( int i = 0; i < 6; i++ )
+	            printf ( "\tpushq\t%s\n", record[i] );
 
-    else {
-    // else if ( expr->type == FUNCTION ) {
-        generate_function_call( expr );
+    		for ( int i = expr->children[1]->n_children-1; i >= 0; i-- ) {
+    		    generate_expression ( expr->children[1]->children[i] );
+    		    ASM1 ( pushq, %rax );
+    		}
+
+    		for ( int i=0; i < MIN(6,expr->children[1]->n_children); i++ )
+    		    printf ( "\tpopq\t%s\n", record[i] );
+
+    	    printf ( "\tcall\t_%s\n", (char*) expr->children[0]->data );
+
+    	    if ( expr->children[1]->n_children > 6 )
+    		  printf ( "\taddq\t$%ld, %%rsp\n", 8*(expr->children[1]->n_children-6) );
+
+            for ( int i = 5; i >= 0; i-- )
+                printf ( "\tpopq\t%s\n", record[i] );
+    	}
     }
 }
 
@@ -274,92 +263,77 @@ generate_print_statement ( node_t *statement )
     ASM2 ( addq, %r15, %rsp );
 }
 
-static void generate_if_statement ( node_t* statement ) {
 
-    if_counter++;
-    // size_t count = if_counter;
+static void generate_if_statement( node_t *statement) {
+    size_t count = if_counter++;
 
-    // put results
-    // ASM1(pushq, %rdx);
-    generate_expression( statement->children[0]->children[0] );
-    ASM1(pushq, %rax);
-    generate_expression( statement->children[0]->children[1] );
+    ASM1 ( pushq, %rdx );
+    generate_expression ( statement->children[0]->children[0] );
+    ASM1 ( pushq, %rax );
+    generate_expression ( statement->children[0]->children[1] );
 
-    //get results
-    // ASM2(cmpq, %rax, %rsp);
-    // ASM1(popq, %rax);
-    // ASM1(popq, %rax);
-    ASM2(cmpq, %rax, (%rsp));
-    ASM1(popq, %rax);
+    ASM1 ( popq, %rdx );
+    ASM2 ( cmpq, %rax, %rdx );
+    ASM1 ( popq, %rdx );
 
-    size_t n_children = statement->n_children;
-
-    // Labling
-    switch ( *(char*) statement->children[0]->data ) {
-
-        case '>':
-            if ( n_children == 2 ) {
-                printf( "\tjle\tENDIF%zu\n", if_counter );
-            }
-            else {
-                printf( "\tjle\tELSE%zu\n", if_counter );
-            }
-            break;
-        case '<':
-            if ( n_children == 2 ) {
-                printf( "\tjge\tENDIF%zu\n", if_counter );
-            }
-            else {
-                printf( "\tjge\tELSE%zu\n", if_counter );
-            }
-            break;
+    switch ( *((char *)statement->children[0]->data) ) {
         case '=':
-            if ( n_children == 2 ) {
-                printf( "\tjne\tENDIF%zu\n", if_counter );
-            }
-            else {
-                printf( "\tjne\tELSE%zu\n", if_counter );
-            }
+    	    if ( statement->n_children == 2 ) printf("\tjne\tENDIF%lu\n", count);
+            else printf("\tjne\tELSE%lu\n", count);
+    	    break;
+        case '<':
+            if ( statement->n_children == 2 ) printf("\tjge\tENDIF%lu\n", count);
+            else printf("\tjge\tELSE%lu\n", count);
+            break;
+        case '>':
+    	    if ( statement->n_children == 2 ) printf("\tjle\tENDIF%lu\n", count);
+    	    else printf("\tjle\tELSE%lu\n", count);
+    	    break;
+    }
+
+    generate_node( statement->children[1] );
+
+    if ( statement->n_children == 3 ) {
+        printf( "\tjmp\tENDIF%lu\n", count );
+        printf( "ELSE%lu:\n", count );
+	    generate_node(statement->children[2]);
+    }
+
+    printf("ENDIF%lu:\n", count);
+}
+
+static void generate_while_statement(node_t *statement ) {
+
+    size_t count = while_counter++;
+
+    printf("WHILELOOP%lu:\n", count);
+
+    ASM1( pushq, %rdx );
+    generate_expression (statement->children[0]->children[0]);
+    ASM1( pushq, %rax );
+    generate_expression ( statement->children[0]->children[1] );
+
+    ASM1( popq, %rdx );
+    ASM2( cmpq, %rax, %rdx );
+    ASM1( popq, %rdx );
+
+    switch ( *((char *)statement->children[0]->data) ) {
+        case '=':
+    	    printf("\tjne\tENDWHILE%lu\n", count);
+    	    break;
+        case '<':
+    	    printf("\tjge\tENDWHILE%lu\n", count);
+    	    break;
+        case '>':
+    	    printf("\tjle\tENDWHILE%lu\n", count);
+    	    break;
     }
 
     generate_node ( statement->children[1] );
 
-    if ( n_children == 3 ) {
-        printf ( "\tjmp\tENDIF%zu\n", if_counter );
-        printf ( "ELSE%zu:\n", if_counter );
-        generate_node( statement->children[2] );
-    }
-
-    printf( "ENDIF%zu:\n", if_counter );
-
+    printf( "\tjmp\tWHILELOOP%lu\n", count );
+    printf( "ENDWHILE%lu:\n", count );
 }
-static void generate_while_statement(node_t *stmt) {
-    while_counter++;
-    // size_t count = while_counter;
-
-    printf("WHILELOOP%zu:\n", while_counter);
-    generate_expression(stmt->children[0]->children[0]);
-    ASM1(pushq, %rax);
-    generate_expression(stmt->children[0]->children[1]);
-    ASM2(cmpq, %rax, %rsp);
-    ASM1(popq, %rax);
-
-    switch (*(char*)stmt->children[0]->data){
-        case '>':
-            printf("\tjle\tENDWHILE%zu\n", while_counter);
-            break;
-        case '=':
-            printf("\tjne\tENDWHILE%zu\n", while_counter);
-            break;
-        case '<':
-            printf("\tjge\tENDWHILE%zu\n", while_counter);
-            break;
-    }
-    generate_node(stmt->children[1]);
-    printf("\tjmp\tWHILELOOP%zu\n", while_counter);
-    printf("ENDWHILE%zu:\n", while_counter);
-}
-
 
 static void
 generate_node ( node_t *node )
@@ -367,31 +341,30 @@ generate_node ( node_t *node )
     switch (node->type)
     {
         case PRINT_STATEMENT:
-            generate_print_statement ( node );
+	        generate_print_statement ( node );
             break;
         case ASSIGNMENT_STATEMENT:
-            generate_assignment_statement ( node );
+	        generate_assignment_statement ( node );
+            break;
+        case WHILE_STATEMENT:
+            generate_while_statement ( node );
+            break;
+        case NULL_STATEMENT:
+            printf ( "\tjmp\tWHILELOOP%lu\n", while_counter-1);
+            break;
+        case IF_STATEMENT:
+            generate_if_statement ( node );
             break;
         case RETURN_STATEMENT:
-            generate_expression ( node->children[0] );
+	        generate_expression ( node->children[0] );
             ASM0 ( leave );
             ASM0 ( ret );
             break;
-        case IF_STATEMENT:
-            generate_if_statement( node);
-            break;
-        case WHILE_STATEMENT:
-            generate_while_statement( node );
-            break;
-        case NULL_STATEMENT:
-            printf("\tjmp\tWHILELOOP%zu\n", while_counter--);
-            break;
         default:
-            RECUR(node);
-            break;
+	       RECUR(node);
+           break;
     }
 }
-
 
 static void
 generate_function ( symbol_t *function )
@@ -410,10 +383,9 @@ generate_function ( symbol_t *function )
     if ( (tlhash_size(function->locals)&1) == 1 )
         puts ( "\tpushq\t$0" );
 
-    func_nparms = function->nparms;
+    nparms = function->nparms;
     generate_node ( function->node );
 }
-
 
 void
 generate_program ( void )
@@ -436,4 +408,5 @@ generate_program ( void )
     for ( size_t i=0; i<tlhash_size(global_names); i++ )
         if ( global_list[i]->type == SYM_FUNCTION )
             generate_function ( global_list[i] );
+
 }
